@@ -54,7 +54,7 @@ test-suite test
   default-extensions: TypeApplications, DataKinds, PolyKinds, TypeOperators, TypeFamilies, UndecidableInstances
   type:             exitcode-stdio-1.0
   main-is:          Main.hs
-  other-modules:    Spec, Infra, GoodTest, BadTest
+  other-modules:    Spec, Infra, GoodTest, BadTest, InductionTest
 --  ghc-options:      -fplugin=CoercionCheck
   hs-source-dirs:   test
   build-depends:    base >=4.10 && <5
