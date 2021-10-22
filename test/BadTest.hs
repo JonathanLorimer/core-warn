@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -ddump-simpl -ddump-to-file #-}
-{-# OPTIONS_GHC -fplugin=CoercionCheck #-}
+-- {-# OPTIONS_GHC -fplugin=CoercionCheck #-}
 
 module BadTest where
 

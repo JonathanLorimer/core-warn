@@ -1,5 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE TupleSections #-}
+
 module CoercionCheck (plugin) where
 
 import Plugins
@@ -16,6 +16,10 @@ import Data.Map
 import Data.Foldable hiding (toList)
 import Control.Monad
 import Data.Set (Set)
+import Control.Arrow ((&&&))
+import qualified Data.Set as Set
+import Data.Data
+import Data.Ord
 
 plugin :: Plugin
 plugin = defaultPlugin
@@ -28,9 +32,10 @@ install ss ctds = pure $ coercionCheck : ctds
 
 coercionCheck :: CoreToDo
 coercionCheck = CoreDoPluginPass "coercionCheck" $ \guts -> do
-  let bindStats = foldMap tabulateBindStats $ mg_binds guts
+  let bindStats = foldMap (fmap exprStats . tabulateBindExpr) $ mg_binds guts
       bindNames = tabulateOccs bindStats
-  pprPanic "bindNames" $ ppr bindNames
+  for_ (toList bindNames) \(occName, vars) ->
+    when (heavyOcc vars) $ warnMsg (heavyOccSDoc occName vars)
   for_ (toList bindStats) \(coreBndr, coreStats) ->
     when (heavyCoerce coreStats) $ warnMsg (heavyCoerceSDoc coreBndr coreStats)
   pure guts
@@ -47,12 +52,30 @@ heavyCoerce CS{cs_tm, cs_co} =
   let quad = cs_tm * floor (log $ fromIntegral cs_tm)
   in cs_co >= quad && cs_co > 100
 
-tabulateBindStats :: Bind CoreBndr -> Map CoreBndr CoreStats
-tabulateBindStats
-  = \case
-      (NonRec var ex) -> singleton var (exprStats ex)
-      (Rec ex) -> foldMap (\ (var, expr) -> singleton var (exprStats expr)) ex
+tabulateBindExpr :: Bind CoreBndr -> Map CoreBndr CoreExpr
+tabulateBindExpr (NonRec var ex) = singleton var ex
+tabulateBindExpr (Rec ex) = foldMap (uncurry singleton) ex
 
 -- Occurence Case
-tabulateOccs :: Map CoreBndr CoreStats -> Map OccName Int
-tabulateOccs = fromListWith (+) . fmap ((, 1) . getOccName) . keys
+tabulateOccs :: Map CoreBndr CoreStats -> Map OccName (Set Var)
+tabulateOccs = fromListWith (<>)
+             . fmap (getOccName &&& Set.singleton)
+             . keys
+
+maxTypeSize :: Set Var -> Int
+maxTypeSize = maximum . Set.map (typeSize . idType)
+
+containsRef :: Data a => Set Name -> a -> Bool
+containsRef names =
+  getAny . everything mappend
+    (mkQ mempty (Any . flip Set.member names))
+
+heavyOcc :: Set Var -> Bool
+heavyOcc vars = floor (log . fromIntegral $ maxTypeSize vars) < Set.size vars
+
+heavyOccSDoc :: OccName -> Set Var -> SDoc
+heavyOccSDoc name vars = ppr name
+                <+> ppr (getLoc . getName . head . Set.toList $ vars )
+                 $$ ppr (maxTypeSize vars)
+                 $$ ppr (Set.size vars)
+                 $$ text "too many occs"
