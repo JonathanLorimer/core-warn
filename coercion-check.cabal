@@ -17,21 +17,24 @@ maintainer:          jonathan_lorimer@mac.com
 build-type:          Simple
 extra-source-files:  CHANGELOG.md, README.md
 
-common common-extensions:
-  default-extensions: TypeApplications, DataKinds, PolyKinds, TypeOperators, TypeFamilies, UndecidableInstances
-
+common common-extensions
+  default-extensions: TypeApplications
+                    , DataKinds
+                    , PolyKinds
+                    , TypeOperators
+                    , TypeFamilies
+                    , UndecidableInstances
 
 library
-  import: common-extensions
-  -- other-modules:
-  -- other-extensions:
-  exposed-modules:  CoercionCheck
+  exposed-modules:  CoercionCheck, Example
   build-depends:    base >=4.10 && <5
+                  , ghc
   hs-source-dirs:   src
+  default-extensions: RecordWildCards
   default-language: Haskell2010
 
 test-suite test
-  import: common-extensions
+  default-extensions: TypeApplications, DataKinds, PolyKinds, TypeOperators, TypeFamilies, UndecidableInstances
   type:             exitcode-stdio-1.0
   main-is:          Main.hs
   other-modules:    Spec, GoodTest, BadTest
