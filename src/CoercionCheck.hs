@@ -28,7 +28,7 @@ coercionCheck :: CoreToDo
 coercionCheck = CoreDoPluginPass "coercionCheck" $ \guts -> do
   let bindStats = foldMap tabulateBindStats $ mg_binds guts
   for_ (toList bindStats) \(coreBndr, coreStats) ->
-    when (heavyCoerce coreStats) $ warnMsg (heavyCoerceSDoc coreBndr coreStats)
+    when (heavyCoerce coreStats) $ warnMsg NoReason (heavyCoerceSDoc coreBndr coreStats)
   pure guts
 
 heavyCoerceSDoc :: CoreBndr -> CoreStats -> SDoc
