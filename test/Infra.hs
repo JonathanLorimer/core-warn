@@ -1,4 +1,4 @@
-module Infra (requireEmptyClass, ToTree) where
+module Infra (requireEmptyClass, requireInductionClass, ToTree) where
 
 import Data.Kind (Type)
 import Data.Proxy
@@ -10,6 +10,14 @@ data Tree a =
   | Branch a (Tree a) (Tree a)
 
 class EmptyClass (xs :: Tree a) where
+
+class InductionClass (xs :: [a]) where
+
+instance InductionClass '[]
+instance InductionClass as => InductionClass (a ': as)
+
+requireInductionClass :: InductionClass xs => Proxy xs -> ()
+requireInductionClass _ = ()
 
 instance EmptyClass 'Zero
 instance EmptyClass ('One x)
