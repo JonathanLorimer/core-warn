@@ -1,4 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE TupleSections #-}
 module CoercionCheck (plugin) where
 
 import Plugins
@@ -14,6 +15,7 @@ import CoreStats (coreBindsStats, CoreStats(CS, cs_tm, cs_co), exprStats)
 import Data.Map
 import Data.Foldable hiding (toList)
 import Control.Monad
+import Data.Set (Set)
 
 plugin :: Plugin
 plugin = defaultPlugin
@@ -27,10 +29,14 @@ install ss ctds = pure $ coercionCheck : ctds
 coercionCheck :: CoreToDo
 coercionCheck = CoreDoPluginPass "coercionCheck" $ \guts -> do
   let bindStats = foldMap tabulateBindStats $ mg_binds guts
+      bindNames = tabulateOccs bindStats
+  pprPanic "bindNames" $ ppr bindNames
   for_ (toList bindStats) \(coreBndr, coreStats) ->
     when (heavyCoerce coreStats) $ warnMsg (heavyCoerceSDoc coreBndr coreStats)
   pure guts
 
+
+-- Coercion Case
 heavyCoerceSDoc :: CoreBndr -> CoreStats -> SDoc
 heavyCoerceSDoc bind stats = ppr (getOccName bind)
                          <+> ppr (getLoc $ getName bind)
@@ -47,4 +53,6 @@ tabulateBindStats
       (NonRec var ex) -> singleton var (exprStats ex)
       (Rec ex) -> foldMap (\ (var, expr) -> singleton var (exprStats expr)) ex
 
-
+-- Occurence Case
+tabulateOccs :: Map CoreBndr CoreStats -> Map OccName Int
+tabulateOccs = fromListWith (+) . fmap ((, 1) . getOccName) . keys
