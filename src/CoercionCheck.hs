@@ -37,7 +37,9 @@ heavyCoerceSDoc bind stats = ppr (getOccName bind)
                           $$ ppr stats
 
 heavyCoerce :: CoreStats -> Bool
-heavyCoerce CS{cs_tm, cs_co} = cs_co >= cs_tm * floor (log $ fromIntegral cs_tm)
+heavyCoerce CS{cs_tm, cs_co} =
+  let quad = cs_tm * floor (log $ fromIntegral cs_tm)
+  in cs_co >= quad && cs_co > 100
 
 tabulateBindStats :: Bind CoreBndr -> Map CoreBndr CoreStats
 tabulateBindStats

@@ -55,6 +55,7 @@ test-suite test
   type:             exitcode-stdio-1.0
   main-is:          Main.hs
   other-modules:    Spec, Infra, GoodTest, BadTest
+  ghc-options:      -fplugin=CoercionCheck
   hs-source-dirs:   test
   build-depends:    base >=4.10 && <5
                   , coercion-check
