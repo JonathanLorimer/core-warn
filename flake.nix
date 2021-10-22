@@ -31,7 +31,6 @@
 
       # nix develop
       devShell = hsPkgs.shellFor {
-        withHoogle = true;
         packages = p: [
           p.coercion-check
         ];

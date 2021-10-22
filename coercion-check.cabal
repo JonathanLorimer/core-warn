@@ -24,20 +24,38 @@ common common-extensions
                     , TypeOperators
                     , TypeFamilies
                     , UndecidableInstances
+                    , Lambda
 
 library
   exposed-modules:  CoercionCheck, Example
   build-depends:    base >=4.10 && <5
                   , ghc
+                  , syb
+                  , containers
   hs-source-dirs:   src
   default-extensions: RecordWildCards
+                    , LambdaCase
+                    , BlockArguments
+                    , ScopedTypeVariables
+                    , ConstraintKinds
+                    , DataKinds
+                    , FlexibleContexts
+                    , FlexibleInstances
+                    , GADTs
+                    , LambdaCase
+                    , MultiParamTypeClasses
+                    , PolyKinds
+                    , RankNTypes
+                    , DerivingStrategies
+
   default-language: Haskell2010
 
 test-suite test
   default-extensions: TypeApplications, DataKinds, PolyKinds, TypeOperators, TypeFamilies, UndecidableInstances
   type:             exitcode-stdio-1.0
   main-is:          Main.hs
-  other-modules:    Spec, GoodTest, BadTest
+  other-modules:    Spec, Infra, GoodTest, BadTest
   hs-source-dirs:   test
   build-depends:    base >=4.10 && <5
+                  , coercion-check
   default-language: Haskell2010

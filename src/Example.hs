@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -fplugin=CoercionCheck #-}
+-- {-# OPTIONS_GHC -fplugin=CoercionCheck #-}
 
 module Example where
-
-
