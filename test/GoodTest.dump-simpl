@@ -1,0 +1,121 @@
+
+==================== Tidy Core ====================
+2021-10-22 15:18:44.972876494 UTC
+
+Result size of Tidy Core
+  = {terms: 31, types: 200, coercions: 65, joins: 0/0}
+
+-- RHS size: {terms: 1, types: 0, coercions: 0, joins: 0/0}
+$trModule1_r1AW :: ghc-prim-0.5.3:GHC.Prim.Addr#
+[GblId, Caf=NoCafRefs, Unf=OtherCon []]
+$trModule1_r1AW = "main"#
+
+-- RHS size: {terms: 2, types: 0, coercions: 0, joins: 0/0}
+$trModule2_r1B4 :: ghc-prim-0.5.3:GHC.Types.TrName
+[GblId, Caf=NoCafRefs, Unf=OtherCon []]
+$trModule2_r1B4 = ghc-prim-0.5.3:GHC.Types.TrNameS $trModule1_r1AW
+
+-- RHS size: {terms: 1, types: 0, coercions: 0, joins: 0/0}
+$trModule3_r1B5 :: ghc-prim-0.5.3:GHC.Prim.Addr#
+[GblId, Caf=NoCafRefs, Unf=OtherCon []]
+$trModule3_r1B5 = "GoodTest"#
+
+-- RHS size: {terms: 2, types: 0, coercions: 0, joins: 0/0}
+$trModule4_r1B6 :: ghc-prim-0.5.3:GHC.Types.TrName
+[GblId, Caf=NoCafRefs, Unf=OtherCon []]
+$trModule4_r1B6 = ghc-prim-0.5.3:GHC.Types.TrNameS $trModule3_r1B5
+
+-- RHS size: {terms: 3, types: 0, coercions: 0, joins: 0/0}
+GoodTest.$trModule :: ghc-prim-0.5.3:GHC.Types.Module
+[GblId, Caf=NoCafRefs, Unf=OtherCon []]
+GoodTest.$trModule
+  = ghc-prim-0.5.3:GHC.Types.Module $trModule2_r1B4 $trModule4_r1B6
+
+-- RHS size: {terms: 3, types: 14, coercions: 0, joins: 0/0}
+$dEmptyClass_r1B7
+  :: Infra.EmptyClass
+       ('Infra.Branch 3 ('Infra.Two 5 9) ('Infra.One 7))
+[GblId]
+$dEmptyClass_r1B7
+  = Infra.$fEmptyClassaBranch
+      @ ghc-prim-0.5.3:GHC.Types.Nat
+      @ ('Infra.Two 5 9)
+      @ ('Infra.One 7)
+      @ 3
+      (Infra.$fEmptyClassaTwo @ ghc-prim-0.5.3:GHC.Types.Nat @ 5 @ 9)
+      (Infra.$fEmptyClassaOne @ ghc-prim-0.5.3:GHC.Types.Nat @ 7)
+
+-- RHS size: {terms: 3, types: 16, coercions: 0, joins: 0/0}
+$dEmptyClass1_r1B8
+  :: Infra.EmptyClass
+       ('Infra.Branch 2 ('Infra.Two 4 8) ('Infra.Two 6 10))
+[GblId]
+$dEmptyClass1_r1B8
+  = Infra.$fEmptyClassaBranch
+      @ ghc-prim-0.5.3:GHC.Types.Nat
+      @ ('Infra.Two 4 8)
+      @ ('Infra.Two 6 10)
+      @ 2
+      (Infra.$fEmptyClassaTwo @ ghc-prim-0.5.3:GHC.Types.Nat @ 4 @ 8)
+      (Infra.$fEmptyClassaTwo @ ghc-prim-0.5.3:GHC.Types.Nat @ 6 @ 10)
+
+-- RHS size: {terms: 3, types: 23, coercions: 0, joins: 0/0}
+$dEmptyClass2_r1B9
+  :: Infra.EmptyClass
+       ('Infra.Branch
+          1
+          ('Infra.Branch 2 ('Infra.Two 4 8) ('Infra.Two 6 10))
+          ('Infra.Branch 3 ('Infra.Two 5 9) ('Infra.One 7)))
+[GblId]
+$dEmptyClass2_r1B9
+  = Infra.$fEmptyClassaBranch
+      @ ghc-prim-0.5.3:GHC.Types.Nat
+      @ ('Infra.Branch 2 ('Infra.Two 4 8) ('Infra.Two 6 10))
+      @ ('Infra.Branch 3 ('Infra.Two 5 9) ('Infra.One 7))
+      @ 1
+      $dEmptyClass1_r1B8
+      $dEmptyClass_r1B7
+
+-- RHS size: {terms: 4, types: 90, coercions: 65, joins: 0/0}
+good :: ()
+[GblId]
+good
+  = break<0>()
+    $ @ 'ghc-prim-0.5.3:GHC.Types.LiftedRep
+      @ (Proxy
+           ('Infra.Branch
+              1
+              ('Infra.Branch 2 ('Infra.Two 4 8) ('Infra.Two 6 10))
+              ('Infra.Branch 3 ('Infra.Two 5 9) ('Infra.One 7))))
+      @ ()
+      (requireEmptyClass
+         @ ghc-prim-0.5.3:GHC.Types.Nat
+         @ ('Infra.Branch
+              1
+              ('Infra.Branch 2 ('Infra.Two 4 8) ('Infra.Two 6 10))
+              ('Infra.Branch 3 ('Infra.Two 5 9) ('Infra.One 7)))
+         $dEmptyClass2_r1B9)
+      ((Data.Proxy.Proxy
+          @ (Infra.Tree ghc-prim-0.5.3:GHC.Types.Nat)
+          @ (ToTree '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]))
+       `cast` ((Proxy
+                  <Infra.Tree ghc-prim-0.5.3:GHC.Types.Nat>_N
+                  Univ(phantom phantom <Infra.Tree ghc-prim-0.5.3:GHC.Types.Nat>_N
+                       :: ToTree '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'Infra.Branch
+                                                                     1
+                                                                     ('Infra.Branch
+                                                                        2
+                                                                        ('Infra.Two 4 8)
+                                                                        ('Infra.Two 6 10))
+                                                                     ('Infra.Branch
+                                                                        3
+                                                                        ('Infra.Two 5 9)
+                                                                        ('Infra.One 7))))_R
+               :: Proxy (ToTree '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+                  ~R# Proxy
+                        ('Infra.Branch
+                           1
+                           ('Infra.Branch 2 ('Infra.Two 4 8) ('Infra.Two 6 10))
+                           ('Infra.Branch 3 ('Infra.Two 5 9) ('Infra.One 7)))))
+
+

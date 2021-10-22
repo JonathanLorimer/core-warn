@@ -17,15 +17,6 @@ maintainer:          jonathan_lorimer@mac.com
 build-type:          Simple
 extra-source-files:  CHANGELOG.md, README.md
 
-executable coercion-check
-  main-is:             Main.hs
-  -- other-modules:
-  other-extensions:   TypeApplications, DataKinds, PolyKinds
-
-  build-depends:       base >=4.10 && <5
-  -- hs-source-dirs:
-  default-language:    Haskell2010
-
 library
   -- other-modules:
   -- other-extensions:
@@ -37,7 +28,8 @@ library
 test-suite test
   type:             exitcode-stdio-1.0
   main-is:          Main.hs
-  other-modules:    Spec
+  other-modules:    Spec, GoodTest, BadTest
+  default-extensions: TypeApplications, DataKinds, PolyKinds, TypeOperators, TypeFamilies, UndecidableInstances
   hs-source-dirs:   test
   build-depends:    base >=4.10 && <5
   default-language: Haskell2010
