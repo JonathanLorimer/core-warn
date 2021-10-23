@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP            #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
 module CoercionCheck.ExtraCoercions where
