@@ -12,7 +12,6 @@ module CoercionCheck (plugin) where
 import CoercionCheck.ExtraCoercions
 import CoercionCheck.ExtraOccurences
 import Control.Monad
-import CoreStats
 import Data.Bool (bool)
 import Data.Containers.ListUtils (nubOrd)
 import Data.Foldable
@@ -22,12 +21,20 @@ import Data.Maybe (fromMaybe)
 import Data.Monoid
 import GHC (GhcTc)
 import Generics.SYB
-import GhcPlugins hiding (singleton, typeSize, (<>))
 import Prelude hiding (lookup)
 import System.IO.Unsafe (unsafePerformIO)
-import TcRnMonad (tcg_binds)
 import qualified Data.Map as M
 import qualified Data.Set as S
+
+#if __GLASGOW_HASKELL__ >= 900
+import GHC.Core.Stats
+import GHC.Plugins hiding (typeSize, (<>))
+import GHC.Tc.Types  (tcg_binds)
+#else
+import CoreStats
+import GhcPlugins hiding (typeSize, (<>))
+import TcRnMonad (tcg_binds)
+#endif
 
 #if __GLASGOW_HASKELL__ >= 810
 import GHC.Hs.Expr
