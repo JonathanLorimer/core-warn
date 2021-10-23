@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE ViewPatterns #-}
 
 #if __GLASGOW_HASKELL__ >= 810
 #define REASON NoReason
@@ -141,11 +140,7 @@ findBindCoercions occ = everything (<>) $ mkQ mempty $ \case
                       ) x
 
 insertIfEmpty :: a -> [a] -> [a]
-insertIfEmpty a as =
-  case null as of
-    True -> [a]
-    False -> as
-
+insertIfEmpty a as = if null as then [a] else as
 
 isDictVar :: CoreBndr -> Bool
 isDictVar bndr = fromMaybe False $ do
@@ -167,10 +162,9 @@ coercionCheck opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
 
   when (flip appEndo True $ cco_warnHeavyOccs opts) $
     for_ dictSets \dictSet ->
-      -- warnMsg REASON $ ppr dictSet
-      when (heavyOcc dictSet) $
-        warnMsg REASON . ppr $ foldMap (S.singleton . occName) dictSet
-          -- heavyOccSDoc (nubOrd $ findRef occ binds) occ vars
+      let srcSpans = filter isGoodSrcSpan $ foldMap (`findRef` binds) $ foldMap (S.singleton . occName) dictSet
+       in when (heavyOcc dictSet) (warnMsg REASON $ heavyOccSDoc srcSpans dictSet)
+
   when (flip appEndo True $ cco_warnHeavyCoerce opts) $
     for_ (M.toList . fmap exprStats $ programMap) \(coreBndr, coreStats) ->
       when (heavyCoerce coreStats) $
