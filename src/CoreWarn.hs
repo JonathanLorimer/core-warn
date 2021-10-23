@@ -12,10 +12,10 @@
 #define VARBINDARG _
 #endif
 
-module CoercionCheck (plugin) where
+module CoreWarn (plugin) where
 
-import CoercionCheck.ExtraCoercions
-import CoercionCheck.ExtraOccurences
+import Warn.Coercion
+import Warn.Dictionary
 import Control.Monad
 import Data.Bool (bool)
 import Data.Foldable
@@ -86,7 +86,7 @@ instance Monoid CoercionCheckOpts where
 install :: CorePlugin
 install ss ctds = do
   binds <- liftIO $ readIORef global_tcg_ref
-  pure $ coercionCheck (parseOpts ss) binds : ctds
+  pure $ coreWarn (parseOpts ss) binds : ctds
 
 parseOpts :: [CommandLineOption] -> CoercionCheckOpts
 parseOpts = go
@@ -149,8 +149,8 @@ isDictVar bndr = fromMaybe False $ do
   pure True
 
 
-coercionCheck :: CoercionCheckOpts -> LHsBinds GhcTc -> CoreToDo
-coercionCheck opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
+coreWarn :: CoercionCheckOpts -> LHsBinds GhcTc -> CoreToDo
+coreWarn opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
   let programMap = foldMap tabulateBindExpr $ mg_binds guts
       dictSets = fmap (S.fromList . toList)
                  . components

@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP            #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CoercionCheck.ExtraCoercions where
+module Warn.Coercion where
 
 import Data.Map (Map)
 import qualified Data.Map as M

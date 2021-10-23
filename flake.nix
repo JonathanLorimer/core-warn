@@ -1,5 +1,5 @@
 {
-  description = "Check big coercions";
+  description = "Provide warnings for unexpected Core generation";
 
   inputs = {
     # Nix Inputs
@@ -21,18 +21,18 @@
       pkgs = nixpkgs.legacyPackages.${system};
       hsPkgs = pkgs.haskell.packages.${compilerVersion}.override {
         overrides = hfinal: hprev: {
-          coercion-check = hfinal.callCabal2nix "coercion-check" ./. { };
+          core-warn = hfinal.callCabal2nix "core-warn" ./. { };
         };
       };
     in
     rec {
       packages = utils.flattenTree
-        { coercion-check = hsPkgs.coercion-check; };
+        { core-warn = hsPkgs.core-warn; };
 
       # nix develop
       devShell = hsPkgs.shellFor {
         packages = p: [
-          p.coercion-check
+          p.core-warn
         ];
         buildInputs = with pkgs; [
           hsPkgs.haskell-language-server
@@ -44,6 +44,6 @@
       };
 
       # nix build
-      defaultPackage = packages.coercion-check;
+      defaultPackage = packages.core-warn;
     });
 }

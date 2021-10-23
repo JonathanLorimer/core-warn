@@ -8,7 +8,7 @@
 #define FUNTYARG
 #endif
 
-module CoercionCheck.ExtraOccurences where
+module Warn.Dictionary where
 
 import Data.Foldable
 import Data.Generics.Aliases

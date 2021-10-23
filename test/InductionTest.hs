@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -ddump-simpl -ddump-to-file -dsuppress-uniques #-}
-{-# OPTIONS_GHC -fplugin=CoercionCheck #-}
+{-# OPTIONS_GHC -fplugin=CoreWarn #-}
 
 module InductionTest where
 
