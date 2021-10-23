@@ -7,7 +7,9 @@ import Control.Monad
 import CoreStats
 import Data.Foldable
 import qualified Data.Map as M
+import qualified Data.Set as S
 import Data.Monoid
+import Data.Graph.Good
 import GhcPlugins hiding (singleton, typeSize, (<>))
 import Prelude hiding (lookup)
 import GHC (GhcTc)
@@ -117,16 +119,15 @@ isDictVar bndr = fromMaybe False $ do
 coercionCheck :: CoercionCheckOpts -> LHsBinds GhcTc -> CoreToDo
 coercionCheck opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
   let programMap = foldMap tabulateBindExpr $ mg_binds guts
-      bindStats = fmap exprStats programMap
-      bindNames = tabulateOccs bindStats
+      coreGraph = graphFromEdges . M.toList . fmap S.toList . mkCoreAdjacencyMap $ programMap
 
-  when (flip appEndo True $ cco_warnHeavyOccs opts) $
-    for_ (M.toList bindNames) \(occ, vars) ->
-      when (heavyOcc vars) $
-        warnMsg $
-          heavyOccSDoc (nubOrd $ findRef occ binds) occ vars
+  -- when (flip appEndo True $ cco_warnHeavyOccs opts) $
+  --   for_ (M.toList bindNames) \(occ, vars) ->
+  --     when (heavyOcc vars) $
+  --       warnMsg $
+  --         heavyOccSDoc (nubOrd $ findRef occ binds) occ vars
   when (flip appEndo True $ cco_warnHeavyCoerce opts) $
-    for_ (M.toList bindStats) \(coreBndr, coreStats) ->
+    for_ (M.toList . fmap exprStats $ programMap) \(coreBndr, coreStats) ->
       when (heavyCoerce coreStats) $
         warnMsg $
           heavyCoerceSDoc

@@ -35,6 +35,7 @@ library
                   , syb
                   , containers
                   , mtl
+                  , containers-good-graph
   hs-source-dirs:   src
   default-extensions: RecordWildCards
                     , LambdaCase

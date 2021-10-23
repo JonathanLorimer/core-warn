@@ -6,6 +6,7 @@ import Data.Data
 import Data.Foldable
 import Data.Generics.Aliases
 import Data.Generics.Schemes
+import Data.Graph.Good
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Monoid
@@ -16,11 +17,8 @@ import GhcPlugins hiding ((<>))
 import TcType (tcSplitNestedSigmaTys)
 import TyCoRep hiding (typeSize)
 
-tabulateOccs :: Map CoreBndr CoreStats -> Map OccName (Set CoreBndr)
-tabulateOccs =
-  M.fromListWith (<>)
-    . fmap (getOccName &&& Set.singleton)
-    . M.keys
+mkCoreAdjacencyMap :: Map CoreBndr CoreExpr -> Map CoreBndr (Set CoreBndr)
+mkCoreAdjacencyMap = fmap $ everything mappend (mkQ mempty Set.singleton)
 
 biggestType :: Set CoreBndr -> Type
 biggestType = rhsType . idType . maximumBy (comparing (typeSizeWithoutKinds . rhsType . idType))
