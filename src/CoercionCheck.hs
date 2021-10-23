@@ -9,12 +9,11 @@ import           CoreStats (coreBindsStats, CoreStats(CS, cs_tm, cs_co), exprSta
 import           CoreSyn (CoreProgram)
 import           Data.Data
 import           Data.Foldable
-import           Data.Functor.Identity
 import           Data.Generics.Aliases
 import           Data.Generics.Schemes
 import           Data.Map (Map)
 import qualified Data.Map as M
-import           Data.Maybe (listToMaybe, fromMaybe)
+import           Data.Maybe (listToMaybe)
 import           Data.Monoid
 import           Data.Ord
 import           Data.Set (Set)
