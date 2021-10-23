@@ -1,4 +1,7 @@
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE NamedFieldPuns        #-}
+{-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 module CoercionCheck (plugin) where
 
@@ -9,11 +12,12 @@ import           CoreStats (coreBindsStats, CoreStats(CS, cs_tm, cs_co), exprSta
 import           CoreSyn (CoreProgram)
 import           Data.Data
 import           Data.Foldable
+import           Data.Functor.Identity
 import           Data.Generics.Aliases
 import           Data.Generics.Schemes
 import           Data.Map (Map)
 import qualified Data.Map as M
-import           Data.Maybe (listToMaybe)
+import           Data.Maybe (listToMaybe, fromMaybe)
 import           Data.Monoid
 import           Data.Ord
 import           Data.Set (Set)
@@ -26,29 +30,68 @@ import           Prelude hiding (lookup)
 import           TcType (tcSplitSigmaTy, tcSplitNestedSigmaTys)
 import           TyCoRep hiding (typeSize)
 
+
 plugin :: Plugin
 plugin = defaultPlugin
           { installCoreToDos = install
           , pluginRecompile = const $ pure NoForceRecompile
           }
 
-install :: CorePlugin
-install ss ctds = pure $ coercionCheck : ctds
+data CoercionCheckOpts f = CoercionCheckOpts
+  { cco_warnHeavyCoerce :: f Bool
+  , cco_warnHeavyOccs   :: f Bool
+  }
 
-coercionCheck :: CoreToDo
-coercionCheck = CoreDoPluginPass "coercionCheck" $ \guts -> do
+deriving instance (forall a. Eq a => Eq (f a)) => Eq (CoercionCheckOpts f)
+deriving instance (forall a. Show a => Show (f a)) => Show (CoercionCheckOpts f)
+
+sequenceHKD :: Applicative f => CoercionCheckOpts f -> f (CoercionCheckOpts Identity)
+sequenceHKD (CoercionCheckOpts fb fb5) = CoercionCheckOpts <$> fmap Identity fb <*> fmap Identity fb5
+
+instance (forall a. Semigroup (f a)) => Semigroup (CoercionCheckOpts f) where
+  (<>) (CoercionCheckOpts lb4 lb5) (CoercionCheckOpts lb lb3)
+    = CoercionCheckOpts
+        {cco_warnHeavyCoerce = lb4 <> lb, cco_warnHeavyOccs = lb5 <> lb3}
+
+instance (forall a. Monoid (f a)) => Monoid (CoercionCheckOpts f) where
+  mempty
+    = CoercionCheckOpts
+        {cco_warnHeavyCoerce = mempty, cco_warnHeavyOccs = mempty}
+
+install :: CorePlugin
+install ss ctds = pure $ coercionCheck (parseOpts ss) : ctds
+
+parseOpts :: [CommandLineOption] -> CoercionCheckOpts Identity
+parseOpts = fromMaybe defaultOpts . getLast . sequenceHKD . mappend defaultOpts . go
+  where
+    go = foldMap $ \case
+      "warn-heavy-coerce"    -> CoercionCheckOpts (pure True) mempty
+      "no-warn-heavy-coerce" -> CoercionCheckOpts (pure False) mempty
+      "warn-heavy-occs"      -> CoercionCheckOpts mempty (pure True)
+      "no-warn-heavy-occs"   -> CoercionCheckOpts mempty (pure False)
+
+
+defaultOpts :: Applicative f => CoercionCheckOpts f
+defaultOpts = CoercionCheckOpts (pure True) (pure True)
+
+
+
+coercionCheck :: CoercionCheckOpts Identity -> CoreToDo
+coercionCheck opts = CoreDoPluginPass "coercionCheck" $ \guts -> do
   let programMap = foldMap tabulateBindExpr $ mg_binds guts
       bindStats = fmap exprStats programMap
       bindNames = tabulateOccs bindStats
       derefMap = derefAllVars bindNames programMap
 
-  for_ (M.toList bindNames) \(occName, vars) ->
-    when (heavyOcc vars) $
-      case join $ fmap (listToMaybe . Set.toList) $ M.lookup occName derefMap of
-        Just name | isGoodSrcSpan (getLoc name)  -> warnMsg (heavyOccSDoc name occName vars)
-        _ -> pure ()
-  for_ (M.toList bindStats) \(coreBndr, coreStats) ->
-    when (heavyCoerce coreStats) $ warnMsg (heavyCoerceSDoc coreBndr coreStats)
+  when (runIdentity $ cco_warnHeavyOccs opts) $
+    for_ (M.toList bindNames) \(occName, vars) ->
+      when (heavyOcc vars) $
+        case join $ fmap (listToMaybe . Set.toList) $ M.lookup occName derefMap of
+          Just name | isGoodSrcSpan (getLoc name)  -> warnMsg (heavyOccSDoc name occName vars)
+          _ -> pure ()
+  when (runIdentity $ cco_warnHeavyCoerce opts) $
+    for_ (M.toList bindStats) \(coreBndr, coreStats) ->
+      when (heavyCoerce coreStats) $ warnMsg (heavyCoerceSDoc coreBndr coreStats)
   pure guts
 
 
