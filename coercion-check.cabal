@@ -27,7 +27,8 @@ common common-extensions
                     , Lambda
 
 library
-  exposed-modules:  CoercionCheck, Example
+  exposed-modules:  CoercionCheck
+  other-modules: CoercionCheck.ExtraCoercions, CoercionCheck.ExtraOccurences
   ghc-options:      -Wall
   build-depends:    base >=4.10 && <5
                   , ghc

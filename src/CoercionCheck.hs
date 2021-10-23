@@ -6,17 +6,30 @@ import Control.Monad
 import CoreStats
 import Data.Foldable
 import qualified Data.Map as M
-import Data.Maybe (listToMaybe)
 import Data.Monoid
-import qualified Data.Set as Set
 import GhcPlugins hiding (singleton, typeSize, (<>))
 import Prelude hiding (lookup)
+import HsBinds (LHsBinds)
+import GHC (GhcTc)
+import Data.IORef
+import System.IO.Unsafe (unsafePerformIO)
+import TcRnMonad (tcg_binds)
+import Generics.SYB
+import HsExpr
+import Data.Bool (bool)
+
+global_tcg_ref :: IORef (LHsBinds GhcTc)
+global_tcg_ref = unsafePerformIO $ newIORef $ error "no tcg_binds set"
+{-# NOINLINE global_tcg_ref #-}
 
 plugin :: Plugin
 plugin =
   defaultPlugin
-    { installCoreToDos = install,
-      pluginRecompile = const $ pure NoForceRecompile
+    { installCoreToDos = install
+    , pluginRecompile = const $ pure NoForceRecompile
+    , typeCheckResultAction = \_ _ tcg -> do
+        liftIO $ writeIORef global_tcg_ref $ tcg_binds tcg
+        pure tcg
     }
 
 data CoercionCheckOpts = CoercionCheckOpts
@@ -39,7 +52,9 @@ instance Monoid CoercionCheckOpts where
       }
 
 install :: CorePlugin
-install ss ctds = pure $ coercionCheck (parseOpts ss) : ctds
+install ss ctds = do
+  binds <- liftIO $ readIORef global_tcg_ref
+  pure $ coercionCheck (parseOpts ss) binds : ctds
 
 parseOpts :: [CommandLineOption] -> CoercionCheckOpts
 parseOpts = go
@@ -51,19 +66,25 @@ parseOpts = go
       "no-warn-heavy-occs" -> CoercionCheckOpts mempty (Endo $ pure False)
       _ -> mempty
 
-coercionCheck :: CoercionCheckOpts -> CoreToDo
-coercionCheck opts = CoreDoPluginPass "coercionCheck" $ \guts -> do
+findRef :: Data a => OccName -> a -> [SrcSpan]
+findRef occ = everything (<>) $ mkQ mempty $ \case
+  L loc (HsWrap _ ev _)
+    | isGoodSrcSpan loc ->
+        everything (<>)
+          (mkQ mempty $ \(v :: Var) -> bool [] [loc] $ getOccName v == occ)
+          ev
+  (_ :: LHsExpr GhcTc) -> []
+
+coercionCheck :: CoercionCheckOpts -> LHsBinds GhcTc -> CoreToDo
+coercionCheck opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
   let programMap = foldMap tabulateBindExpr $ mg_binds guts
       bindStats = fmap exprStats programMap
       bindNames = tabulateOccs bindStats
-      derefMap = derefAllVars bindNames programMap
 
   when (flip appEndo True $ cco_warnHeavyOccs opts) $
     for_ (M.toList bindNames) \(occ, vars) ->
       when (heavyOcc vars) $
-        case (listToMaybe . Set.toList) =<< M.lookup occ derefMap of
-          Just name | isGoodSrcSpan (getLoc name) -> warnMsg (heavyOccSDoc name occ vars)
-          _ -> pure ()
+        warnMsg (heavyOccSDoc (findRef occ binds) occ vars)
   when (flip appEndo True $ cco_warnHeavyCoerce opts) $
     for_ (M.toList bindStats) \(coreBndr, coreStats) ->
       when (heavyCoerce coreStats) $ warnMsg (heavyCoerceSDoc coreBndr coreStats)
