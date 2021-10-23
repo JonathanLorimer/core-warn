@@ -54,7 +54,7 @@ heavyOccSDoc goodSpans vars =
                        else (bullet <+>) . ppr <$> goodSpans
   in
   text "Found a large chain of dictionaries produced in GHC Core."
-  $$ nest 2 (text "You are using a big instance chain that is generating a linear amount of core dictionaries.")
+  $$ nest 2 (text "A big instance chain that is generating a linear amount of dictionaries.")
   $$ nest 2 (text "This is probably caused by using an unbalanced inductive structure (like a type level list).")
   $$ nest 2 (text "Consider using a balanced structure (like a type level Tree).")
   $$ text ""
