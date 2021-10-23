@@ -48,6 +48,7 @@ library
                     , PolyKinds
                     , RankNTypes
                     , DerivingStrategies
+                    , TypeApplications
 
   default-language: Haskell2010
 
@@ -56,7 +57,7 @@ test-suite test
   type:             exitcode-stdio-1.0
   main-is:          Main.hs
   other-modules:    Spec, Infra, GoodTest, BadTest, InductionTest
---  ghc-options:      -fplugin=CoercionCheck
+  -- ghc-options:      -O0
   hs-source-dirs:   test
   build-depends:    base >=4.10 && <5
                   , coercion-check
