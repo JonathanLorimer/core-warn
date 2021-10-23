@@ -119,13 +119,20 @@ isDictVar bndr = fromMaybe False $ do
 coercionCheck :: CoercionCheckOpts -> LHsBinds GhcTc -> CoreToDo
 coercionCheck opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
   let programMap = foldMap tabulateBindExpr $ mg_binds guts
-      coreGraph = graphFromEdges . M.toList . fmap S.toList . mkCoreAdjacencyMap $ programMap
+      dictSets = fmap (S.fromList . toList)
+                 . components
+                 . graphFromEdges
+                 . filter (isDictVar . fst)
+                 . M.toList . fmap S.toList
+                 . mkCoreAdjacencyMap
+                 $ programMap
 
-  -- when (flip appEndo True $ cco_warnHeavyOccs opts) $
-  --   for_ (M.toList bindNames) \(occ, vars) ->
-  --     when (heavyOcc vars) $
-  --       warnMsg $
-  --         heavyOccSDoc (nubOrd $ findRef occ binds) occ vars
+  when (flip appEndo True $ cco_warnHeavyOccs opts) $
+    for_ dictSets \dictSet ->
+      -- warnMsg $ ppr dictSet
+      when (heavyOcc dictSet) $
+        warnMsg . ppr $ foldMap (S.singleton . occName) dictSet
+          -- heavyOccSDoc (nubOrd $ findRef occ binds) occ vars
   when (flip appEndo True $ cco_warnHeavyCoerce opts) $
     for_ (M.toList . fmap exprStats $ programMap) \(coreBndr, coreStats) ->
       when (heavyCoerce coreStats) $
