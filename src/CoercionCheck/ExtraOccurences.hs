@@ -63,7 +63,7 @@ heavyOccSDoc goodSpans vars =
   $$ text ""
   $$ text "Biggest dictionary: " <+> coloured colBlueFg (ppr $ biggestType vars)
   $$ text "Size of type: " <+> coloured colBlueFg (int $ typeSizeWithoutKinds $ biggestType vars)
-  $$ text "Generated core binds: " <+> coloured colBlueFg (int $ Set.size vars)
+  $$ text "Number of dictionaries: " <+> coloured colBlueFg (int $ Set.size vars)
   $$ text ""
 
 typeSizeWithoutKinds :: Type -> Int
