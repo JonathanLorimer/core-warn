@@ -1,6 +1,12 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ViewPatterns #-}
 
+#if __GLASGOW_HASKELL__ >= 810
+#define REASON NoReason
+#else
+#define REASON
+#endif
+
 module CoercionCheck (plugin) where
 
 import CoercionCheck.ExtraCoercions
@@ -139,14 +145,14 @@ coercionCheck opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
 
   when (flip appEndo True $ cco_warnHeavyOccs opts) $
     for_ dictSets \dictSet ->
-      -- warnMsg $ ppr dictSet
+      -- warnMsg REASON $ ppr dictSet
       when (heavyOcc dictSet) $
-        warnMsg . ppr $ foldMap (S.singleton . occName) dictSet
+        warnMsg REASON . ppr $ foldMap (S.singleton . occName) dictSet
           -- heavyOccSDoc (nubOrd $ findRef occ binds) occ vars
   when (flip appEndo True $ cco_warnHeavyCoerce opts) $
     for_ (M.toList . fmap exprStats $ programMap) \(coreBndr, coreStats) ->
       when (heavyCoerce coreStats) $
-        warnMsg $
+        warnMsg REASON $
           heavyCoerceSDoc
             (insertIfEmpty noSrcSpan $ nubOrd $ findBindCoercions (getName coreBndr) binds)
             coreBndr
