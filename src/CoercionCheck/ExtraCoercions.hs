@@ -21,20 +21,22 @@ heavyCoerceSDoc refs bind stats =
                        then take 3 ((bullet <+>) . ppr <$> refs) <> [text "..."]
                        else (bullet <+>) . ppr <$> refs
       CS{..} = stats
-   in text "Found a large number of coercions in GHC Core."
-       $$ nest 2 (text "GHC produced a a quadratic number of coercions relative to the number of terms.")
-       $$ nest 2 (text "This can happen for expensive type families that are used outside of phantom contexts.")
-       $$ text ""
-       $$ text "These coercions were introduced in"
-          <+> (coloured colBlueFg . ppr . getOccName $ bind)
-          <+> text "at these locations:"
-       $$ nest 4 (vcat srcSpanList)
-       $$ text ""
-       $$ text "Terms:" <+> coloured colBlueFg (ppr cs_tm)
-          <+> text "Types:" <+> coloured colBlueFg (ppr cs_ty)
-          <+> text "Coercions:" <+> coloured colBlueFg (ppr cs_co)
-       $$ text ""
-
+   in vcat [ text "Found a large number of coercions in GHC Core."
+           , nest 2 $  text " GHC produced a a quadratic number of coercions relative to the number of terms."
+                    $$ text "This can happen for expensive type families that are used outside of phantom contexts."
+           , blankLine
+           , hsep [ text "These coercions were introduced in"
+                 , coloured colBlueFg . ppr . getOccName $ bind
+                 , text "at these locations:"
+                 ]
+           , nest 4 (vcat srcSpanList)
+           , blankLine
+           , sep [ text "Terms:",     coloured colBlueFg $ ppr cs_tm
+                 , text "Types:",     coloured colBlueFg $ ppr cs_ty
+                 , text "Coercions:", coloured colBlueFg $ ppr cs_co
+                 ]
+           , text ""
+           ]
 heavyCoerce :: CoreStats -> Bool
 heavyCoerce CS {cs_tm, cs_co} =
   let quad = cs_tm * floor (logBase @Double 2 $ fromIntegral cs_tm)

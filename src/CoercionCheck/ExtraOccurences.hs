@@ -52,19 +52,19 @@ heavyOccSDoc goodSpans vars =
   let srcSpanList = if length goodSpans >= 3
                        then take 3 ((bullet <+>) . ppr <$> goodSpans) <> [text "..."]
                        else (bullet <+>) . ppr <$> goodSpans
-  in
-  text "Found a large chain of dictionaries produced in GHC Core."
-  $$ nest 2 (text "A big instance chain that is generating a linear amount of dictionaries.")
-  $$ nest 2 (text "This is probably caused by instance induction on an unbalanced structure (like a type-level list).")
-  $$ nest 2 (text "Consider using a balanced structure (like a type-level tree).")
-  $$ text ""
-  $$ text "Arising from:"
-  $$ nest 4 (vcat srcSpanList)
-  $$ text ""
-  $$ text "Biggest dictionary: " <+> coloured colBlueFg (ppr $ biggestType vars)
-  $$ text "Size of type: " <+> coloured colBlueFg (int $ typeSizeWithoutKinds $ biggestType vars)
-  $$ text "Number of dictionaries: " <+> coloured colBlueFg (int $ Set.size vars)
-  $$ text ""
+   in vcat [ text "Found a large chain of dictionaries produced in GHC Core."
+           , nest 2 (text "A big instance chain that is generating a linear amount of core dictionaries.")
+           , nest 2 (text "This is probably caused by instance induction on an unbalanced structure (like a type-level list).")
+           , nest 2 (text "Consider using a balanced structure (like a type-level tree).")
+           , blankLine
+           , text "Arising from:"
+           , nest 4 (vcat srcSpanList)
+           , blankLine
+           , text "Biggest dictionary: " <+> coloured colBlueFg (ppr $ biggestType vars)
+           , text "Size of type: " <+> coloured colBlueFg (int $ typeSizeWithoutKinds $ biggestType vars)
+           , text "Number of dictionaries: " <+> coloured colBlueFg (int $ Set.size vars)
+           , blankLine
+           ]
 
 typeSizeWithoutKinds :: Type -> Int
 typeSizeWithoutKinds LitTy {} = 1
