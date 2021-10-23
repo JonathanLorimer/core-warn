@@ -22,6 +22,7 @@ import TcEvidence
 import HsDumpAst
 import Data.Function (on)
 import Data.Containers.ListUtils (nubOrd)
+import Data.Maybe (fromMaybe)
 
 global_tcg_ref :: IORef (LHsBinds GhcTc)
 global_tcg_ref = unsafePerformIO $ newIORef $ error "no tcg_binds set"
@@ -104,6 +105,14 @@ findBindCoercions occ = everything (<>) $ mkQ mempty $ \case
           , gtypecount (undefined :: Coercion) y > 0  -> [loc]
         (_ :: LHsExpr GhcTc) -> []
                       ) x
+
+
+isDictVar :: CoreBndr -> Bool
+isDictVar bndr = fromMaybe False $ do
+  (tycon, _) <- tcSplitTyConApp_maybe $ idType bndr
+  _cls <- tyConClass_maybe tycon
+  pure True
+
 
 coercionCheck :: CoercionCheckOpts -> LHsBinds GhcTc -> CoreToDo
 coercionCheck opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
