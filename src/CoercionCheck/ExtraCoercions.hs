@@ -9,11 +9,12 @@ import qualified Data.Map as M
 #if __GLASGOW_HASKELL__ >= 900
 import GHC.Core.Stats
 import GHC.Plugins
+import GHC.Utils.Ppr.Colour
 #else
 import CoreStats
 import GhcPlugins hiding ((<>))
-#endif
 import PprColour
+#endif
 
 heavyCoerceSDoc :: [SrcSpan] -> CoreBndr -> CoreStats -> SDoc
 heavyCoerceSDoc refs bind stats =

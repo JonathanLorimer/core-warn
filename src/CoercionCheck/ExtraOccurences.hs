@@ -22,12 +22,13 @@ import qualified Data.Set as Set
 import GHC.Plugins hiding ((<>))
 import GHC.Tc.Utils.TcType (tcSplitNestedSigmaTys)
 import GHC.Core.TyCo.Rep
+import GHC.Utils.Ppr.Colour
 #else
 import GhcPlugins hiding ((<>))
 import TcType (tcSplitNestedSigmaTys)
 import TyCoRep
-#endif
 import PprColour
+#endif
 
 mkCoreAdjacencyMap :: Map CoreBndr CoreExpr -> Map CoreBndr (Set CoreBndr)
 mkCoreAdjacencyMap = fmap $ everything mappend (mkQ mempty Set.singleton)
