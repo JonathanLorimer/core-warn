@@ -72,12 +72,12 @@ parseOpts = go
       "no-warn-heavy-occs"   -> CoercionCheckOpts mempty (Endo $ pure False)
       _ -> mempty
 
-findRef :: Data a => Name -> a -> [SrcSpan]
+findRef :: Data a => OccName -> a -> [SrcSpan]
 findRef occ = everything (<>) $ mkQ mempty $ \case
   L loc (HsWrap _ ev _)
     | isGoodSrcSpan loc ->
         everything (<>)
-          (mkQ mempty $ \(v :: Var) -> bool [] [loc] $ getName v == occ)
+          (mkQ mempty $ \(v :: Var) -> bool [] [loc] $ getOccName v == occ)
           ev
   (_ :: LHsExpr GhcTc) -> []
 
