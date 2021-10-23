@@ -22,9 +22,8 @@ heavyCoerceSDoc refs bind stats =
                        else (bullet <+>) . ppr <$> refs
       CS{..} = stats
    in text "Found a large number of coercions in GHC Core."
-       $$ text ""
-       $$ text "GHC produced a a quadratic number of coercions relative to the number of terms."
-       $$ text "This can happen for expensive type families that are used outside of phantom contexts."
+       $$ nest 2 (text "GHC produced a a quadratic number of coercions relative to the number of terms.")
+       $$ nest 2 (text "This can happen for expensive type families that are used outside of phantom contexts.")
        $$ text ""
        $$ text "These type families were introduced in"
           <+> (coloured colBlueFg . ppr . getOccName $ bind)
@@ -35,11 +34,6 @@ heavyCoerceSDoc refs bind stats =
           <+> text "Types:" <+> coloured colBlueFg (ppr cs_ty)
           <+> text "Coercions:" <+> coloured colBlueFg (ppr cs_co)
        $$ text ""
-       $$ text "Try something like this:"
-       $$ nest 4 (coloured colBlueFg $ text "func (Proxy @('[1, 2, 3, 4]))")
-       $$ text ""
-       $$ text "Instead of something like this:"
-       $$ nest 4 (coloured colBlueFg $ text "func @('[1, 2, 3, 4]) $ Proxy")
 
 heavyCoerce :: CoreStats -> Bool
 heavyCoerce CS {cs_tm, cs_co} =

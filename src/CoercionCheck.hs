@@ -153,7 +153,8 @@ coercionCheck opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
 
   when (flip appEndo True $ cco_warnHeavyOccs opts) $
     for_ dictSets \dictSet ->
-      when (heavyOcc dictSet) (warnMsg REASON $ heavyOccSDoc dictSet)
+      let srcSpans = filter isGoodSrcSpan $ foldMap (`findRef` binds) $ foldMap (S.singleton . occName) dictSet
+       in when (heavyOcc dictSet) (warnMsg REASON $ heavyOccSDoc srcSpans dictSet)
 
   when (flip appEndo True $ cco_warnHeavyCoerce opts) $
     for_ (M.toList . fmap exprStats $ programMap) \(coreBndr, coreStats) ->

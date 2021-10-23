@@ -47,16 +47,24 @@ heavyOcc coreBndrs =
    in biggestTypeSize `div` 2 < amountOfCoreBndrs
         && amountOfCoreBndrs > 4
 
-heavyOccSDoc :: Set CoreBndr -> SDoc
-heavyOccSDoc vars =
-  text "Found a large chain of dictionaries produced in GHC Core."
-  $$ nest 2 (text "You are using an inductive type that is generating a linear amount of core dictionaries.")
+heavyOccSDoc :: [SrcSpan] -> Set CoreBndr -> SDoc
+heavyOccSDoc goodSpans vars =
+  let srcSpanList = if length goodSpans >= 3
+                       then take 3 ((bullet <+>) . ppr <$> goodSpans) <> [text "..."]
+                       else (bullet <+>) . ppr <$> goodSpans
+  in
+  text "Found a large graph of dictionaries produced in GHC Core."
+  $$ nest 2 (text "You are using a big instance chain that is generating a linear amount of core dictionaries.")
   $$ nest 2 (text "This is probably caused by using an unbalanced inductive structure (like a type level list).")
   $$ nest 2 (text "Consider using a balanced structure (like a type level Tree).")
   $$ text ""
-  $$ text "Inductive type: " <+> coloured colBlueFg (ppr $ biggestType vars)
-  $$ text "Size of inductive type: " <+> coloured colBlueFg (int $ typeSizeWithoutKinds $ biggestType vars)
+  $$ text "This graph of dicttionaries was introduced in at these locations:"
+  $$ nest 4 (vcat srcSpanList)
+  $$ text ""
+  $$ text "Instance chain type: " <+> coloured colBlueFg (ppr $ biggestType vars)
+  $$ text "Size of instance chain: " <+> coloured colBlueFg (int $ typeSizeWithoutKinds $ biggestType vars)
   $$ text "Generated core binds: " <+> coloured colBlueFg (int $ Set.size vars)
+  $$ text ""
 
 typeSizeWithoutKinds :: Type -> Int
 typeSizeWithoutKinds LitTy {} = 1
