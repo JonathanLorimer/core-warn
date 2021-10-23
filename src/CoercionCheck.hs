@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE ViewPatterns #-}
 
 #if __GLASGOW_HASKELL__ >= 810
 #define REASON NoReason
@@ -49,13 +48,6 @@ import GHC.Hs.Binds
 import HsExpr
 import HsBinds
 #endif
-import TcEvidence
-import HsDumpAst
-import Data.Function (on)
-import Data.Containers.ListUtils (nubOrd)
-import Data.Maybe (fromMaybe)
-import Data.Containers.ListUtils (nubOrd)
-import Data.Maybe (fromMaybe)
 
 global_tcg_ref :: IORef (LHsBinds GhcTc)
 global_tcg_ref = unsafePerformIO $ newIORef $ error "no tcg_binds set"
