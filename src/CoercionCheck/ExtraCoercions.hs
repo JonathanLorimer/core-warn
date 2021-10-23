@@ -2,10 +2,16 @@
 
 module CoercionCheck.ExtraCoercions where
 
-import CoreStats
 import Data.Map (Map)
 import qualified Data.Map as M
+
+#if __GLASGOW_HASKELL__ >= 900
+import GHC.Core.Stats
+import GHC.Plugins
+#else
+import CoreStats
 import GhcPlugins
+#endif
 
 heavyCoerceSDoc :: [SrcSpan] -> CoreBndr -> CoreStats -> SDoc
 heavyCoerceSDoc refs bind stats =

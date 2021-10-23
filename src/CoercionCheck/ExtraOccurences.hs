@@ -8,22 +8,23 @@
 
 module CoercionCheck.ExtraOccurences where
 
-import Control.Arrow ((&&&))
-import CoreStats
-import Data.Data
 import Data.Foldable
 import Data.Generics.Aliases
 import Data.Generics.Schemes
-import Data.Graph.Good
 import Data.Map (Map)
-import qualified Data.Map as M
-import Data.Monoid
 import Data.Ord
 import Data.Set (Set)
 import qualified Data.Set as Set
+
+#if __GLASGOW_HASKELL__ >= 900
+import GHC.Plugins hiding ((<>))
+import GHC.Tc.Utils.TcType (tcSplitNestedSigmaTys)
+import GHC.Core.TyCo.Rep
+#else
 import GhcPlugins hiding ((<>))
 import TcType (tcSplitNestedSigmaTys)
-import TyCoRep hiding (typeSize)
+import TyCoRep
+#endif
 
 mkCoreAdjacencyMap :: Map CoreBndr CoreExpr -> Map CoreBndr (Set CoreBndr)
 mkCoreAdjacencyMap = fmap $ everything mappend (mkQ mempty Set.singleton)
@@ -57,9 +58,9 @@ heavyOccSDoc refs name vars =
 typeSizeWithoutKinds :: Type -> Int
 typeSizeWithoutKinds LitTy {} = 1
 typeSizeWithoutKinds TyVarTy {} = 1
-typeSizeWithoutKinds (AppTy t1 t2) = typeSizeWithoutKinds t1 + typeSize t2
-typeSizeWithoutKinds (FunTy FUNTYARG t1 t2) = typeSizeWithoutKinds t1 + typeSize t2
-typeSizeWithoutKinds (ForAllTy (Bndr tv _) t) = typeSizeWithoutKinds (varType tv) + typeSize t
+typeSizeWithoutKinds (AppTy t1 t2) = typeSizeWithoutKinds t1 + typeSizeWithoutKinds t2
+typeSizeWithoutKinds (FunTy FUNTYARG t1 t2) = typeSizeWithoutKinds t1 + typeSizeWithoutKinds t2
+typeSizeWithoutKinds (ForAllTy (Bndr tv _) t) = typeSizeWithoutKinds (varType tv) + typeSizeWithoutKinds t
 typeSizeWithoutKinds (TyConApp tc []) =
   let (kind_vars, _, _) = tcSplitNestedSigmaTys $ tyConKind tc
    in 1 - length kind_vars
