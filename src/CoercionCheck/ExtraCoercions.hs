@@ -25,7 +25,7 @@ heavyCoerceSDoc refs bind stats =
        $$ nest 2 (text "GHC produced a a quadratic number of coercions relative to the number of terms.")
        $$ nest 2 (text "This can happen for expensive type families that are used outside of phantom contexts.")
        $$ text ""
-       $$ text "These type families were introduced in"
+       $$ text "These coercions were introduced in"
           <+> (coloured colBlueFg . ppr . getOccName $ bind)
           <+> text "at these locations:"
        $$ nest 4 (vcat srcSpanList)
