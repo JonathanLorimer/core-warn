@@ -108,6 +108,12 @@ findBindCoercions occ = everything (<>) $ mkQ mempty $ \case
         (_ :: LHsExpr GhcTc) -> []
                       ) x
 
+insertIfEmpty :: a -> [a] -> [a]
+insertIfEmpty a as =
+  case null as of
+    True -> [a]
+    False -> as
+
 
 isDictVar :: CoreBndr -> Bool
 isDictVar bndr = fromMaybe False $ do
@@ -138,7 +144,7 @@ coercionCheck opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
       when (heavyCoerce coreStats) $
         warnMsg $
           heavyCoerceSDoc
-            (nubOrd $ findBindCoercions (getName coreBndr) binds)
+            (insertIfEmpty noSrcSpan $ nubOrd $ findBindCoercions (getName coreBndr) binds)
             coreBndr
             coreStats
   pure guts
