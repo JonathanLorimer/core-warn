@@ -56,7 +56,7 @@ heavyOccSDoc goodSpans vars =
   text "Found a large chain of dictionaries produced in GHC Core."
   $$ nest 2 (text "A big instance chain that is generating a linear amount of dictionaries.")
   $$ nest 2 (text "This is probably caused by instance induction on an unbalanced structure (like a type-level list).")
-  $$ nest 2 (text "Consider using a balanced structure (like a type level Tree).")
+  $$ nest 2 (text "Consider using a balanced structure (like a type-level tree).")
   $$ text ""
   $$ text "This graph of dicttionaries was introduced in at these locations:"
   $$ nest 4 (vcat srcSpanList)
