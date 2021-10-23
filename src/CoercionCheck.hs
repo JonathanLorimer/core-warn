@@ -1,7 +1,4 @@
-{-# LANGUAGE NamedFieldPuns        #-}
-{-# LANGUAGE QuantifiedConstraints #-}
-{-# LANGUAGE StandaloneDeriving    #-}
-{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module CoercionCheck (plugin) where
 
@@ -37,23 +34,17 @@ plugin = defaultPlugin
           , pluginRecompile = const $ pure NoForceRecompile
           }
 
-data CoercionCheckOpts f = CoercionCheckOpts
-  { cco_warnHeavyCoerce :: f Bool
-  , cco_warnHeavyOccs   :: f Bool
+data CoercionCheckOpts = CoercionCheckOpts
+  { cco_warnHeavyCoerce :: Endo Bool
+  , cco_warnHeavyOccs   :: Endo Bool
   }
 
-deriving instance (forall a. Eq a => Eq (f a)) => Eq (CoercionCheckOpts f)
-deriving instance (forall a. Show a => Show (f a)) => Show (CoercionCheckOpts f)
-
-sequenceHKD :: Applicative f => CoercionCheckOpts f -> f (CoercionCheckOpts Identity)
-sequenceHKD (CoercionCheckOpts fb fb5) = CoercionCheckOpts <$> fmap Identity fb <*> fmap Identity fb5
-
-instance (forall a. Semigroup (f a)) => Semigroup (CoercionCheckOpts f) where
+instance Semigroup CoercionCheckOpts where
   (<>) (CoercionCheckOpts lb4 lb5) (CoercionCheckOpts lb lb3)
     = CoercionCheckOpts
-        {cco_warnHeavyCoerce = lb4 <> lb, cco_warnHeavyOccs = lb5 <> lb3}
+        {cco_warnHeavyCoerce = lb <> lb4, cco_warnHeavyOccs = lb3 <> lb5}
 
-instance (forall a. Monoid (f a)) => Monoid (CoercionCheckOpts f) where
+instance Monoid (CoercionCheckOpts) where
   mempty
     = CoercionCheckOpts
         {cco_warnHeavyCoerce = mempty, cco_warnHeavyOccs = mempty}
@@ -61,35 +52,31 @@ instance (forall a. Monoid (f a)) => Monoid (CoercionCheckOpts f) where
 install :: CorePlugin
 install ss ctds = pure $ coercionCheck (parseOpts ss) : ctds
 
-parseOpts :: [CommandLineOption] -> CoercionCheckOpts Identity
-parseOpts = fromMaybe defaultOpts . getLast . sequenceHKD . mappend defaultOpts . go
+parseOpts :: [CommandLineOption] -> CoercionCheckOpts
+parseOpts = go
   where
     go = foldMap $ \case
-      "warn-heavy-coerce"    -> CoercionCheckOpts (pure True) mempty
-      "no-warn-heavy-coerce" -> CoercionCheckOpts (pure False) mempty
-      "warn-heavy-occs"      -> CoercionCheckOpts mempty (pure True)
-      "no-warn-heavy-occs"   -> CoercionCheckOpts mempty (pure False)
-
-
-defaultOpts :: Applicative f => CoercionCheckOpts f
-defaultOpts = CoercionCheckOpts (pure True) (pure True)
+      "warn-heavy-coerce"    -> CoercionCheckOpts (Endo $ pure True) mempty
+      "no-warn-heavy-coerce" -> CoercionCheckOpts (Endo $ pure False) mempty
+      "warn-heavy-occs"      -> CoercionCheckOpts mempty (Endo $ pure True)
+      "no-warn-heavy-occs"   -> CoercionCheckOpts mempty (Endo $ pure False)
 
 
 
-coercionCheck :: CoercionCheckOpts Identity -> CoreToDo
+coercionCheck :: CoercionCheckOpts -> CoreToDo
 coercionCheck opts = CoreDoPluginPass "coercionCheck" $ \guts -> do
   let programMap = foldMap tabulateBindExpr $ mg_binds guts
       bindStats = fmap exprStats programMap
       bindNames = tabulateOccs bindStats
       derefMap = derefAllVars bindNames programMap
 
-  when (runIdentity $ cco_warnHeavyOccs opts) $
+  when (flip appEndo True $ cco_warnHeavyOccs opts) $
     for_ (M.toList bindNames) \(occName, vars) ->
       when (heavyOcc vars) $
         case join $ fmap (listToMaybe . Set.toList) $ M.lookup occName derefMap of
           Just name | isGoodSrcSpan (getLoc name)  -> warnMsg (heavyOccSDoc name occName vars)
           _ -> pure ()
-  when (runIdentity $ cco_warnHeavyCoerce opts) $
+  when (flip appEndo True $ cco_warnHeavyCoerce opts) $
     for_ (M.toList bindStats) \(coreBndr, coreStats) ->
       when (heavyCoerce coreStats) $ warnMsg (heavyCoerceSDoc coreBndr coreStats)
   pure guts
