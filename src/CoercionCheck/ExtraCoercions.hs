@@ -8,7 +8,7 @@ import qualified Data.Map as M
 
 #if __GLASGOW_HASKELL__ >= 900
 import GHC.Core.Stats
-import GHC.Plugins
+import GHC.Plugins hiding ((<>))
 import GHC.Utils.Ppr.Colour
 #else
 import CoreStats
