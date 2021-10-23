@@ -7,12 +7,6 @@
 #define REASON
 #endif
 
-#if __GLASGOW_HASKELL__ >= 900
-#define WRAPARG
-#else
-#define WRAPARG _
-#endif
-
 module CoercionCheck (plugin) where
 
 import CoercionCheck.ExtraCoercions
@@ -100,7 +94,11 @@ parseOpts = go
 
 findRef :: Data a => OccName -> a -> [SrcSpan]
 findRef occ = everything (<>) $ mkQ mempty $ \case
-  L loc (HsWrap _ ev WRAPARG)
+#if __GLASGOW_HASKELL__ >= 900
+  L loc (XExpr (WrapExpr ev))
+#else
+  L loc (HsWrap _ ev _)
+#endif
     | isGoodSrcSpan loc ->
         everything (<>)
           (mkQ mempty $ \(v :: Var) -> bool [] [loc] $ getOccName v == occ)
