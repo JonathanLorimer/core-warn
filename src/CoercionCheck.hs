@@ -59,7 +59,7 @@ heavyCoerceSDoc bind stats = ppr (getOccName bind)
 
 heavyCoerce :: CoreStats -> Bool
 heavyCoerce CS{cs_tm, cs_co} =
-  let quad = cs_tm * floor (log $ fromIntegral cs_tm)
+  let quad = cs_tm * floor (logBase 2 $ fromIntegral cs_tm)
   in cs_co >= quad && cs_co > 100
 
 tabulateBindExpr :: Bind CoreBndr -> Map CoreBndr CoreExpr
@@ -86,11 +86,11 @@ containsRef names =
     (mkQ mempty (Any . flip Set.member names))
 
 heavyOcc :: Set CoreBndr -> Bool
-heavyOcc vars =
-  let occs = Set.size vars
-      biggest = biggestType vars
-      types = typeSize biggest
-   in ceiling (log $ fromIntegral occs) <  types && occs > 1
+heavyOcc coreBndrs =
+  let amountOfCoreBndrs = Set.size coreBndrs
+      biggestTypeSize = typeSize (biggestType coreBndrs)
+   in ceiling ((fromIntegral biggestTypeSize) / 2) < amountOfCoreBndrs
+   && amountOfCoreBndrs > 1
 
 heavyOccSDoc :: Name -> OccName -> Set CoreBndr -> SDoc
 heavyOccSDoc ref name vars = ppr name
@@ -98,6 +98,7 @@ heavyOccSDoc ref name vars = ppr name
                  $$ text "type: " <+> ppr (biggestType vars)
                  $$ text "type size: " <+> ppr (typeSize $ biggestType vars)
                  $$ text "occ count: " <+> ppr (Set.size vars)
+                 $$ text "sqrt size: " <+> ppr @Int (ceiling (sqrt . fromIntegral . typeSize $ biggestType vars))
 
 -- whichProgramsContainThisOccNameEquivalenceClass?
 derefVar
