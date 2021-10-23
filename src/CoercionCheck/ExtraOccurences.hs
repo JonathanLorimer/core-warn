@@ -1,6 +1,8 @@
 {-# LANGUAGE CPP #-}
 
-#if __GLASGOW_HASKELL__ >= 810
+#if __GLASGOW_HASKELL__ >= 900
+#define FUNTYARG _ _
+#elif __GLASGOW_HASKELL__ == 810
 #define FUNTYARG _
 #else
 #define FUNTYARG
