@@ -4,9 +4,7 @@ module CoercionCheck (plugin) where
 
 import           Control.Arrow ((&&&))
 import           Control.Monad
-import           CoreMonad (CoreToDo(CoreDoPluginPass))
-import           CoreStats (coreBindsStats, CoreStats(CS, cs_tm, cs_co), exprStats)
-import           CoreSyn (CoreProgram)
+import           CoreStats (CoreStats(CS, cs_tm, cs_co), exprStats)
 import           Data.Data
 import           Data.Foldable
 import           Data.Generics.Aliases
@@ -19,11 +17,8 @@ import           Data.Ord
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           GhcPlugins hiding (singleton, (<>), typeSize)
-import           HscTypes (ModGuts(ModGuts))
-import           Outputable (pprPanic)
-import           Plugins
 import           Prelude hiding (lookup)
-import           TcType (tcSplitSigmaTy, tcSplitNestedSigmaTys)
+import           TcType (tcSplitNestedSigmaTys)
 import           TyCoRep hiding (typeSize)
 
 
@@ -59,6 +54,7 @@ parseOpts = go
       "no-warn-heavy-coerce" -> CoercionCheckOpts (Endo $ pure False) mempty
       "warn-heavy-occs"      -> CoercionCheckOpts mempty (Endo $ pure True)
       "no-warn-heavy-occs"   -> CoercionCheckOpts mempty (Endo $ pure False)
+      _                      -> mempty
 
 
 
@@ -70,10 +66,10 @@ coercionCheck opts = CoreDoPluginPass "coercionCheck" $ \guts -> do
       derefMap = derefAllVars bindNames programMap
 
   when (flip appEndo True $ cco_warnHeavyOccs opts) $
-    for_ (M.toList bindNames) \(occName, vars) ->
+    for_ (M.toList bindNames) \(occ, vars) ->
       when (heavyOcc vars) $
-        case join $ fmap (listToMaybe . Set.toList) $ M.lookup occName derefMap of
-          Just name | isGoodSrcSpan (getLoc name)  -> warnMsg (heavyOccSDoc name occName vars)
+        case join $ fmap (listToMaybe . Set.toList) $ M.lookup occ derefMap of
+          Just name | isGoodSrcSpan (getLoc name)  -> warnMsg (heavyOccSDoc name occ vars)
           _ -> pure ()
   when (flip appEndo True $ cco_warnHeavyCoerce opts) $
     for_ (M.toList bindStats) \(coreBndr, coreStats) ->
@@ -89,7 +85,7 @@ heavyCoerceSDoc bind stats = ppr (getOccName bind)
 
 heavyCoerce :: CoreStats -> Bool
 heavyCoerce CS{cs_tm, cs_co} =
-  let quad = cs_tm * floor (logBase 2 $ fromIntegral cs_tm)
+  let quad = cs_tm * floor (logBase @Double 2 $ fromIntegral cs_tm)
   in cs_co >= quad && cs_co > 100
 
 tabulateBindExpr :: Bind CoreBndr -> Map CoreBndr CoreExpr
@@ -119,7 +115,7 @@ heavyOcc :: Set CoreBndr -> Bool
 heavyOcc coreBndrs =
   let amountOfCoreBndrs = Set.size coreBndrs
       biggestTypeSize = typeSize (biggestType coreBndrs)
-   in ceiling (fromIntegral biggestTypeSize / 2) < amountOfCoreBndrs
+   in (biggestTypeSize `div` 2) < amountOfCoreBndrs
    && amountOfCoreBndrs > 4
 
 heavyOccSDoc :: Name -> OccName -> Set CoreBndr -> SDoc
@@ -128,7 +124,6 @@ heavyOccSDoc ref name vars = ppr name
                  $$ text "type: " <+> ppr (biggestType vars)
                  $$ text "type size: " <+> ppr (typeSize $ biggestType vars)
                  $$ text "occ count: " <+> ppr (Set.size vars)
-                 $$ text "sqrt size: " <+> ppr @Int (ceiling (sqrt . fromIntegral . typeSize $ biggestType vars))
 
 -- whichProgramsContainThisOccNameEquivalenceClass?
 derefVar
@@ -162,6 +157,6 @@ typeSize (TyConApp tc [])          =
 typeSize (TyConApp tc ts)          =
   let (kind_vars, _, _) = tcSplitNestedSigmaTys $ tyConKind tc
    in sum (fmap typeSize ts) - length kind_vars
-typeSize (CastTy ty co)           = typeSize ty + coercionSize co
-typeSize (CoercionTy co)          = 0
+typeSize (CastTy ty _)           = typeSize ty
+typeSize (CoercionTy _)          = 0
 
