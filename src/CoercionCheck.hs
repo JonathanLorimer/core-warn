@@ -6,9 +6,7 @@ import Control.Monad
 import CoreStats
 import Data.Foldable
 import qualified Data.Map as M
-import Data.Maybe (listToMaybe)
 import Data.Monoid
-import qualified Data.Set as Set
 import GhcPlugins hiding (singleton, typeSize, (<>))
 import Prelude hiding (lookup)
 import HsBinds (LHsBinds)
