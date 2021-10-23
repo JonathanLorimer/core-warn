@@ -19,7 +19,6 @@ import CoercionCheck.ExtraCoercions
 import CoercionCheck.ExtraOccurences
 import Control.Monad
 import Data.Bool (bool)
-import Data.Containers.ListUtils (nubOrd)
 import Data.Foldable
 import Data.Graph.Good
 import Data.IORef
@@ -36,7 +35,9 @@ import qualified Data.Set as S
 import GHC.Core.Stats
 import GHC.Plugins hiding (typeSize, (<>))
 import GHC.Tc.Types  (tcg_binds)
+import Data.List (nub)
 #else
+import Data.Containers.ListUtils (nubOrd)
 import CoreStats
 import GhcPlugins hiding (typeSize, (<>))
 import TcRnMonad (tcg_binds)
@@ -175,7 +176,13 @@ coercionCheck opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
       when (heavyCoerce coreStats) $
         warnMsg REASON $
           heavyCoerceSDoc
-            (insertIfEmpty noSrcSpan $ nubOrd $ findBindCoercions (getName coreBndr) binds)
+            (insertIfEmpty noSrcSpan $
+#if __GLASGOW_HASKELL__ >= 900
+              nub
+#else
+              nubOrd
+#endif
+              $ findBindCoercions (getName coreBndr) binds)
             coreBndr
             coreStats
   pure guts
