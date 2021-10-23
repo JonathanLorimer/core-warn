@@ -61,7 +61,7 @@ heavyOccSDoc goodSpans vars =
   $$ text "Arising from:"
   $$ nest 4 (vcat srcSpanList)
   $$ text ""
-  $$ text "Instance chain type: " <+> coloured colBlueFg (ppr $ biggestType vars)
+  $$ text "Biggest dictionary: " <+> coloured colBlueFg (ppr $ biggestType vars)
   $$ text "Size of type: " <+> coloured colBlueFg (int $ typeSizeWithoutKinds $ biggestType vars)
   $$ text "Generated core binds: " <+> coloured colBlueFg (int $ Set.size vars)
   $$ text ""
