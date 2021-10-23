@@ -7,6 +7,12 @@
 #define REASON
 #endif
 
+#if __GLASGOW_HASKELL__ >= 900
+#define VARBINDARG
+#else
+#define VARBINDARG _
+#endif
+
 module CoercionCheck (plugin) where
 
 import CoercionCheck.ExtraCoercions
@@ -110,7 +116,7 @@ findRef occ = everything (<>) $ mkQ mempty $ \case
 -- definition.
 findBindCoercions :: Data a => Name -> a -> [SrcSpan]
 findBindCoercions occ = everything (<>) $ mkQ mempty $ \case
-  x@(VarBind _ a _ _)
+  x@(VarBind _ a _ VARBINDARG)
     | getName a == occ ->
         get_sub x
   x@(FunBind _ (L _ a) _ _ _)
@@ -123,7 +129,11 @@ findBindCoercions occ = everything (<>) $ mkQ mempty $ \case
   where
     get_sub x =
       everything (<>) (mkQ mempty $ \case
+#if __GLASGOW_HASKELL__ >= 900
+        L loc (XExpr (WrapExpr y))
+#else
         L loc (HsWrap _ y _)
+#endif
           | isGoodSrcSpan loc
           , gtypecount (undefined :: Coercion) y > 0  -> [loc]
         (_ :: LHsExpr GhcTc) -> []
