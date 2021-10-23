@@ -1,3 +1,11 @@
+{-# LANGUAGE CPP #-}
+
+#if __GLASGOW_HASKELL__ == 806
+#define BNDR TvBndr
+#else
+#define BNDR Bndr
+#endif
+
 module CoercionCheck.ExtraOccurences where
 
 import Control.Arrow ((&&&))
@@ -51,7 +59,7 @@ typeSizeWithoutKinds LitTy {} = 1
 typeSizeWithoutKinds TyVarTy {} = 1
 typeSizeWithoutKinds (AppTy t1 t2) = typeSizeWithoutKinds t1 + typeSize t2
 typeSizeWithoutKinds (FunTy t1 t2) = typeSizeWithoutKinds t1 + typeSize t2
-typeSizeWithoutKinds (ForAllTy (Bndr tv _) t) = typeSizeWithoutKinds (varType tv) + typeSize t
+typeSizeWithoutKinds (ForAllTy (BNDR tv _) t) = typeSizeWithoutKinds (varType tv) + typeSize t
 typeSizeWithoutKinds (TyConApp tc []) =
   let (kind_vars, _, _) = tcSplitNestedSigmaTys $ tyConKind tc
    in 1 - length kind_vars
