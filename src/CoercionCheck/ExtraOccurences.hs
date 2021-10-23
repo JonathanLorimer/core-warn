@@ -53,9 +53,9 @@ heavyOccSDoc goodSpans vars =
                        then take 3 ((bullet <+>) . ppr <$> goodSpans) <> [text "..."]
                        else (bullet <+>) . ppr <$> goodSpans
    in vcat [ text "Found a large chain of dictionaries produced in GHC Core."
-           , nest 2 (text "A big instance chain that is generating a linear amount of core dictionaries.")
-           , nest 2 (text "This is probably caused by instance induction on an unbalanced structure (like a type-level list).")
-           , nest 2 (text "Consider using a balanced structure (like a type-level tree).")
+           , nest 2 $  text "A big instance chain that is generating a linear amount of core dictionaries."
+                    $$ text "This is probably caused by instance induction on an unbalanced structure (like a type-level list)."
+                    $$ text "Consider using a balanced structure (like a type-level tree)."
            , blankLine
            , text "Arising from:"
            , nest 4 (vcat srcSpanList)
