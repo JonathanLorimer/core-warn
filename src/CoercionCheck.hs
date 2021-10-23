@@ -8,10 +8,11 @@ import           CoreMonad (CoreToDo(CoreDoPluginPass))
 import           CoreStats (coreBindsStats, CoreStats(CS, cs_tm, cs_co), exprStats)
 import           CoreSyn (CoreProgram)
 import           Data.Data
-import           Data.Foldable hiding (toList)
+import           Data.Foldable
 import           Data.Generics.Aliases
 import           Data.Generics.Schemes
-import           Data.Map
+import           Data.Map (Map)
+import qualified Data.Map as M
 import           Data.Maybe (listToMaybe)
 import           Data.Monoid
 import           Data.Ord
@@ -41,13 +42,13 @@ coercionCheck = CoreDoPluginPass "coercionCheck" $ \guts -> do
       bindNames = tabulateOccs bindStats
       derefMap = derefAllVars bindNames programMap
 
-  for_ (toList bindNames) \(occName, vars) ->
+  for_ (M.toList bindNames) \(occName, vars) ->
     when (heavyOcc vars) $
-      case join $ fmap (listToMaybe . Set.toList) $ lookup occName derefMap of
+      case join $ fmap (listToMaybe . Set.toList) $ M.lookup occName derefMap of
         Just name | isGoodSrcSpan (getLoc name)  -> warnMsg (heavyOccSDoc name occName vars)
         _ -> pure ()
-  -- for_ (toList bindStats) \(coreBndr, coreStats) ->
-  --   when (heavyCoerce coreStats) $ warnMsg (heavyCoerceSDoc coreBndr coreStats)
+  for_ (M.toList bindStats) \(coreBndr, coreStats) ->
+    when (heavyCoerce coreStats) $ warnMsg (heavyCoerceSDoc coreBndr coreStats)
   pure guts
 
 
@@ -63,14 +64,14 @@ heavyCoerce CS{cs_tm, cs_co} =
   in cs_co >= quad && cs_co > 100
 
 tabulateBindExpr :: Bind CoreBndr -> Map CoreBndr CoreExpr
-tabulateBindExpr (NonRec var ex) = singleton var ex
-tabulateBindExpr (Rec ex) = foldMap (uncurry singleton) ex
+tabulateBindExpr (NonRec var ex) = M.singleton var ex
+tabulateBindExpr (Rec ex) = foldMap (uncurry M.singleton) ex
 
 -- Occurence Case
 tabulateOccs :: Map CoreBndr CoreStats -> Map OccName (Set CoreBndr)
-tabulateOccs = fromListWith (<>)
+tabulateOccs = M.fromListWith (<>)
              . fmap (getOccName &&& Set.singleton)
-             . keys
+             . M.keys
 
 biggestType :: Set CoreBndr -> Type
 biggestType = rhsType . idType . maximumBy (comparing (typeSize . rhsType . idType))
@@ -105,7 +106,7 @@ derefVar
     -> Map CoreBndr CoreExpr  -- all names to programs
     -> Set Name               -- names of programs that contain any of the equivalence
 derefVar vars exprs = Set.fromList $ do
-  (bndr, expr) <- toList exprs
+  (bndr, expr) <- M.toList exprs
   guard $ containsRef vars expr
   pure $ getName bndr
 
@@ -114,8 +115,8 @@ derefAllVars
     :: Map OccName (Set CoreBndr)
     -> Map CoreBndr CoreExpr
     -> Map OccName (Set Name)
-derefAllVars ms exprs = fromList $ do
-  (occ, vars) <- toList ms
+derefAllVars ms exprs = M.fromList $ do
+  (occ, vars) <- M.toList ms
   let x = derefVar vars exprs
   pure (occ, Set.filter ((/= occ) . getOccName) x)
 
