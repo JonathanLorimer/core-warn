@@ -58,7 +58,7 @@ heavyOccSDoc goodSpans vars =
   $$ nest 2 (text "This is probably caused by instance induction on an unbalanced structure (like a type-level list).")
   $$ nest 2 (text "Consider using a balanced structure (like a type-level tree).")
   $$ text ""
-  $$ text "This graph of dicttionaries was introduced in at these locations:"
+  $$ text "Arising from:"
   $$ nest 4 (vcat srcSpanList)
   $$ text ""
   $$ text "Instance chain type: " <+> coloured colBlueFg (ppr $ biggestType vars)
