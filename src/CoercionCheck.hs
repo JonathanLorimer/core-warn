@@ -26,29 +26,58 @@ import           Prelude hiding (lookup)
 import           TcType (tcSplitSigmaTy, tcSplitNestedSigmaTys)
 import           TyCoRep hiding (typeSize)
 
+
 plugin :: Plugin
 plugin = defaultPlugin
           { installCoreToDos = install
           , pluginRecompile = const $ pure NoForceRecompile
           }
 
-install :: CorePlugin
-install ss ctds = pure $ coercionCheck : ctds
+data CoercionCheckOpts = CoercionCheckOpts
+  { cco_warnHeavyCoerce :: Endo Bool
+  , cco_warnHeavyOccs   :: Endo Bool
+  }
 
-coercionCheck :: CoreToDo
-coercionCheck = CoreDoPluginPass "coercionCheck" $ \guts -> do
+instance Semigroup CoercionCheckOpts where
+  (<>) (CoercionCheckOpts lb4 lb5) (CoercionCheckOpts lb lb3)
+    = CoercionCheckOpts
+        {cco_warnHeavyCoerce = lb <> lb4, cco_warnHeavyOccs = lb3 <> lb5}
+
+instance Monoid (CoercionCheckOpts) where
+  mempty
+    = CoercionCheckOpts
+        {cco_warnHeavyCoerce = mempty, cco_warnHeavyOccs = mempty}
+
+install :: CorePlugin
+install ss ctds = pure $ coercionCheck (parseOpts ss) : ctds
+
+parseOpts :: [CommandLineOption] -> CoercionCheckOpts
+parseOpts = go
+  where
+    go = foldMap $ \case
+      "warn-heavy-coerce"    -> CoercionCheckOpts (Endo $ pure True) mempty
+      "no-warn-heavy-coerce" -> CoercionCheckOpts (Endo $ pure False) mempty
+      "warn-heavy-occs"      -> CoercionCheckOpts mempty (Endo $ pure True)
+      "no-warn-heavy-occs"   -> CoercionCheckOpts mempty (Endo $ pure False)
+
+
+
+coercionCheck :: CoercionCheckOpts -> CoreToDo
+coercionCheck opts = CoreDoPluginPass "coercionCheck" $ \guts -> do
   let programMap = foldMap tabulateBindExpr $ mg_binds guts
       bindStats = fmap exprStats programMap
       bindNames = tabulateOccs bindStats
       derefMap = derefAllVars bindNames programMap
 
-  for_ (M.toList bindNames) \(occName, vars) ->
-    when (heavyOcc vars) $
-      case join $ fmap (listToMaybe . Set.toList) $ M.lookup occName derefMap of
-        Just name | isGoodSrcSpan (getLoc name)  -> warnMsg (heavyOccSDoc name occName vars)
-        _ -> pure ()
-  for_ (M.toList bindStats) \(coreBndr, coreStats) ->
-    when (heavyCoerce coreStats) $ warnMsg (heavyCoerceSDoc coreBndr coreStats)
+  when (flip appEndo True $ cco_warnHeavyOccs opts) $
+    for_ (M.toList bindNames) \(occName, vars) ->
+      when (heavyOcc vars) $
+        case join $ fmap (listToMaybe . Set.toList) $ M.lookup occName derefMap of
+          Just name | isGoodSrcSpan (getLoc name)  -> warnMsg (heavyOccSDoc name occName vars)
+          _ -> pure ()
+  when (flip appEndo True $ cco_warnHeavyCoerce opts) $
+    for_ (M.toList bindStats) \(coreBndr, coreStats) ->
+      when (heavyCoerce coreStats) $ warnMsg (heavyCoerceSDoc coreBndr coreStats)
   pure guts
 
 
