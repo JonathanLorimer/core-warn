@@ -89,8 +89,8 @@ heavyOcc :: Set CoreBndr -> Bool
 heavyOcc coreBndrs =
   let amountOfCoreBndrs = Set.size coreBndrs
       biggestTypeSize = typeSize (biggestType coreBndrs)
-   in ceiling ((fromIntegral biggestTypeSize) / 2) < amountOfCoreBndrs
-   && amountOfCoreBndrs > 1
+   in ceiling (fromIntegral biggestTypeSize / 2) < amountOfCoreBndrs
+   && amountOfCoreBndrs > 4
 
 heavyOccSDoc :: Name -> OccName -> Set CoreBndr -> SDoc
 heavyOccSDoc ref name vars = ppr name
