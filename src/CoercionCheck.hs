@@ -9,7 +9,6 @@ import qualified Data.Map as M
 import Data.Monoid
 import GhcPlugins hiding (singleton, typeSize, (<>))
 import Prelude hiding (lookup)
-import HsBinds (LHsBinds)
 import GHC (GhcTc)
 import Data.IORef
 import System.IO.Unsafe (unsafePerformIO)
@@ -17,6 +16,8 @@ import TcRnMonad (tcg_binds)
 import Generics.SYB
 import HsExpr
 import Data.Bool (bool)
+import HsBinds
+import TcEvidence
 
 global_tcg_ref :: IORef (LHsBinds GhcTc)
 global_tcg_ref = unsafePerformIO $ newIORef $ error "no tcg_binds set"
@@ -29,6 +30,7 @@ plugin =
     , pluginRecompile = const $ pure NoForceRecompile
     , typeCheckResultAction = \_ _ tcg -> do
         liftIO $ writeIORef global_tcg_ref $ tcg_binds tcg
+        -- pprPanic "ast" $ showAstData NoBlankSrcSpan $ tcg_binds tcg
         pure tcg
     }
 
@@ -75,6 +77,20 @@ findRef occ = everything (<>) $ mkQ mempty $ \case
           ev
   (_ :: LHsExpr GhcTc) -> []
 
+------------------------------------------------------------------------------
+-- | Given an 'OccName', find the src span for every coercion inside of its
+-- definition.
+findBindCoercions :: Data a => OccName -> a -> [SrcSpan]
+findBindCoercions occ = everything (<>) $ mkQ mempty $ \case
+  x@(FunBind _ (L _ a) _ _ _)
+    | getOccName a == occ ->
+        everything (<>) (mkQ mempty $ \case
+          L loc (HsWrap _ (WpCast _) _)
+            | isGoodSrcSpan loc -> [loc]
+          (_ :: LHsExpr GhcTc) -> []
+                        ) x
+  (_ :: HsBindLR GhcTc GhcTc) -> []
+
 coercionCheck :: CoercionCheckOpts -> LHsBinds GhcTc -> CoreToDo
 coercionCheck opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
   let programMap = foldMap tabulateBindExpr $ mg_binds guts
@@ -84,8 +100,14 @@ coercionCheck opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
   when (flip appEndo True $ cco_warnHeavyOccs opts) $
     for_ (M.toList bindNames) \(occ, vars) ->
       when (heavyOcc vars) $
-        warnMsg (heavyOccSDoc (findRef occ binds) occ vars)
+        warnMsg $
+          heavyOccSDoc (findRef occ binds) occ vars
   when (flip appEndo True $ cco_warnHeavyCoerce opts) $
     for_ (M.toList bindStats) \(coreBndr, coreStats) ->
-      when (heavyCoerce coreStats) $ warnMsg (heavyCoerceSDoc coreBndr coreStats)
+      when (heavyCoerce coreStats) $
+        warnMsg $
+          heavyCoerceSDoc
+            (findBindCoercions (getOccName coreBndr) binds)
+            coreBndr
+            coreStats
   pure guts

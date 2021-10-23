@@ -7,11 +7,11 @@ import Data.Map (Map)
 import qualified Data.Map as M
 import GhcPlugins
 
-heavyCoerceSDoc :: CoreBndr -> CoreStats -> SDoc
-heavyCoerceSDoc bind stats =
+heavyCoerceSDoc :: [SrcSpan] -> CoreBndr -> CoreStats -> SDoc
+heavyCoerceSDoc refs bind stats =
   ppr (getOccName bind)
-    <+> ppr (getLoc $ getName bind)
-      $$ ppr stats
+    <+> ppr refs
+     $$ ppr stats
 
 heavyCoerce :: CoreStats -> Bool
 heavyCoerce CS {cs_tm, cs_co} =
