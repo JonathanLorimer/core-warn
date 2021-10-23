@@ -119,7 +119,7 @@ findBindCoercions occ = everything (<>) $ mkQ mempty $ \case
   x@(VarBind _ a _ VARBINDARG)
     | getName a == occ ->
         get_sub x
-  x@(FunBind _ (L _ a) _ _ _)
+  x@(FunBind _ (L _ a) _ _ VARBINDARG)
     | getName a == occ ->
         get_sub x
   x@(AbsBinds _ _ b e _ _ _)
