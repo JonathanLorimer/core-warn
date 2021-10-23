@@ -7,25 +7,29 @@ import CoercionCheck.ExtraCoercions
 import CoercionCheck.ExtraOccurences
 import Control.Monad
 import CoreStats
+import Data.Bool (bool)
+import Data.Containers.ListUtils (nubOrd)
 import Data.Foldable
-import qualified Data.Map as M
-import qualified Data.Set as S
-import Data.Monoid
 import Data.Graph.Good
+import Data.IORef
+import Data.Maybe (fromMaybe)
+import Data.Monoid
+import GHC (GhcTc)
+import Generics.SYB
 import GhcPlugins hiding (singleton, typeSize, (<>))
 import Prelude hiding (lookup)
-import GHC (GhcTc)
-import Data.IORef
 import System.IO.Unsafe (unsafePerformIO)
 import TcRnMonad (tcg_binds)
-import Generics.SYB
+import qualified Data.Map as M
+import qualified Data.Set as S
+
+#if __GLASGOW_HASKELL__ >= 810
+import GHC.Hs.Expr
+import GHC.Hs.Binds
+#else
 import HsExpr
-import Data.Bool (bool)
 import HsBinds
-import TcEvidence
-import Data.Function (on)
-import Data.Containers.ListUtils (nubOrd)
-import Data.Maybe (fromMaybe)
+#endif
 
 global_tcg_ref :: IORef (LHsBinds GhcTc)
 global_tcg_ref = unsafePerformIO $ newIORef $ error "no tcg_binds set"
