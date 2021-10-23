@@ -1,5 +1,7 @@
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE CPP #-}
+
 module CoercionCheck (plugin) where
+{-# LANGUAGE ViewPatterns #-}
 
 import CoercionCheck.ExtraCoercions
 import CoercionCheck.ExtraOccurences
@@ -60,8 +62,14 @@ instance Monoid CoercionCheckOpts where
         cco_warnHeavyOccs = mempty
       }
 
+#if __GLASGOW_HASKELL__ == 806
+install :: CorePluginPass
+install ctds = do
+  let ss = []
+#else
 install :: CorePlugin
 install ss ctds = do
+#endif
   binds <- liftIO $ readIORef global_tcg_ref
   pure $ coercionCheck (parseOpts ss) binds : ctds
 
