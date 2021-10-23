@@ -1,3 +1,4 @@
+{-# LANGUAGE ViewPatterns #-}
 module CoercionCheck (plugin) where
 
 import CoercionCheck.ExtraCoercions
@@ -18,6 +19,9 @@ import HsExpr
 import Data.Bool (bool)
 import HsBinds
 import TcEvidence
+import HsDumpAst
+import Data.Function (on)
+import Data.Containers.ListUtils (nubOrd)
 
 global_tcg_ref :: IORef (LHsBinds GhcTc)
 global_tcg_ref = unsafePerformIO $ newIORef $ error "no tcg_binds set"
@@ -62,34 +66,44 @@ parseOpts :: [CommandLineOption] -> CoercionCheckOpts
 parseOpts = go
   where
     go = foldMap $ \case
-      "warn-heavy-coerce" -> CoercionCheckOpts (Endo $ pure True) mempty
+      "warn-heavy-coerce"    -> CoercionCheckOpts (Endo $ pure True) mempty
       "no-warn-heavy-coerce" -> CoercionCheckOpts (Endo $ pure False) mempty
-      "warn-heavy-occs" -> CoercionCheckOpts mempty (Endo $ pure True)
-      "no-warn-heavy-occs" -> CoercionCheckOpts mempty (Endo $ pure False)
+      "warn-heavy-occs"      -> CoercionCheckOpts mempty (Endo $ pure True)
+      "no-warn-heavy-occs"   -> CoercionCheckOpts mempty (Endo $ pure False)
       _ -> mempty
 
-findRef :: Data a => OccName -> a -> [SrcSpan]
+findRef :: Data a => Name -> a -> [SrcSpan]
 findRef occ = everything (<>) $ mkQ mempty $ \case
   L loc (HsWrap _ ev _)
     | isGoodSrcSpan loc ->
         everything (<>)
-          (mkQ mempty $ \(v :: Var) -> bool [] [loc] $ getOccName v == occ)
+          (mkQ mempty $ \(v :: Var) -> bool [] [loc] $ getName v == occ)
           ev
   (_ :: LHsExpr GhcTc) -> []
 
 ------------------------------------------------------------------------------
 -- | Given an 'OccName', find the src span for every coercion inside of its
 -- definition.
-findBindCoercions :: Data a => OccName -> a -> [SrcSpan]
+findBindCoercions :: Data a => Name -> a -> [SrcSpan]
 findBindCoercions occ = everything (<>) $ mkQ mempty $ \case
+  x@(VarBind _ a _ _)
+    | getName a == occ ->
+        get_sub x
   x@(FunBind _ (L _ a) _ _ _)
-    | getOccName a == occ ->
-        everything (<>) (mkQ mempty $ \case
-          L loc (HsWrap _ (WpCast _) _)
-            | isGoodSrcSpan loc -> [loc]
-          (_ :: LHsExpr GhcTc) -> []
-                        ) x
+    | getName a == occ ->
+        get_sub x
+  x@(AbsBinds _ _ b e _ _ _)
+    | any ((== occ) . getName) b
+   || any ((== occ) . getName . abe_poly) e -> get_sub x
   (_ :: HsBindLR GhcTc GhcTc) -> []
+  where
+    get_sub x =
+      everything (<>) (mkQ mempty $ \case
+        L loc (HsWrap _ y _)
+          | isGoodSrcSpan loc
+          , gtypecount (undefined :: Coercion) y > 0  -> [loc]
+        (_ :: LHsExpr GhcTc) -> []
+                      ) x
 
 coercionCheck :: CoercionCheckOpts -> LHsBinds GhcTc -> CoreToDo
 coercionCheck opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
@@ -101,13 +115,13 @@ coercionCheck opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
     for_ (M.toList bindNames) \(occ, vars) ->
       when (heavyOcc vars) $
         warnMsg $
-          heavyOccSDoc (findRef occ binds) occ vars
+          heavyOccSDoc (nubOrd $ findRef occ binds) occ vars
   when (flip appEndo True $ cco_warnHeavyCoerce opts) $
     for_ (M.toList bindStats) \(coreBndr, coreStats) ->
       when (heavyCoerce coreStats) $
         warnMsg $
           heavyCoerceSDoc
-            (findBindCoercions (getOccName coreBndr) binds)
+            (nubOrd $ findBindCoercions (getName coreBndr) binds)
             coreBndr
             coreStats
   pure guts

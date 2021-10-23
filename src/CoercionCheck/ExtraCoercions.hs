@@ -10,7 +10,7 @@ import GhcPlugins
 heavyCoerceSDoc :: [SrcSpan] -> CoreBndr -> CoreStats -> SDoc
 heavyCoerceSDoc refs bind stats =
   ppr (getOccName bind)
-    <+> ppr refs
+    <+> ppr (getSrcSpan bind : refs)
      $$ ppr stats
 
 heavyCoerce :: CoreStats -> Bool
