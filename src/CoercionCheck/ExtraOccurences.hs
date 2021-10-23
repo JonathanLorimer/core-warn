@@ -27,6 +27,7 @@ import GhcPlugins hiding ((<>))
 import TcType (tcSplitNestedSigmaTys)
 import TyCoRep
 #endif
+import PprColour
 
 mkCoreAdjacencyMap :: Map CoreBndr CoreExpr -> Map CoreBndr (Set CoreBndr)
 mkCoreAdjacencyMap = fmap $ everything mappend (mkQ mempty Set.singleton)
@@ -46,16 +47,16 @@ heavyOcc coreBndrs =
    in biggestTypeSize `div` 2 < amountOfCoreBndrs
         && amountOfCoreBndrs > 4
 
-heavyOccSDoc :: [SrcSpan] -> OccName -> Set CoreBndr -> SDoc
-heavyOccSDoc refs name vars =
-  ppr name
-    <+> ppr refs
-      $$ text "type: "
-    <+> ppr (biggestType vars)
-      $$ text "type size: "
-    <+> ppr (typeSizeWithoutKinds $ biggestType vars)
-      $$ text "occ count: "
-    <+> ppr (Set.size vars)
+heavyOccSDoc :: Set CoreBndr -> SDoc
+heavyOccSDoc vars =
+  text "Found a large chain of dictionaries produced in GHC Core."
+  $$ nest 2 (text "You are using an inductive type that is generating a linear amount of core dictionaries.")
+  $$ nest 2 (text "This is probably caused by using an unbalanced inductive structure (like a type level list).")
+  $$ nest 2 (text "Consider using a balanced structure (like a type level Tree).")
+  $$ text ""
+  $$ text "Inductive type: " <+> coloured colBlueFg (ppr $ biggestType vars)
+  $$ text "Size of inductive type: " <+> coloured colBlueFg (int $ typeSizeWithoutKinds $ biggestType vars)
+  $$ text "Generated core binds: " <+> coloured colBlueFg (int $ Set.size vars)
 
 typeSizeWithoutKinds :: Type -> Int
 typeSizeWithoutKinds LitTy {} = 1

@@ -49,6 +49,13 @@ import GHC.Hs.Binds
 import HsExpr
 import HsBinds
 #endif
+import TcEvidence
+import HsDumpAst
+import Data.Function (on)
+import Data.Containers.ListUtils (nubOrd)
+import Data.Maybe (fromMaybe)
+import Data.Containers.ListUtils (nubOrd)
+import Data.Maybe (fromMaybe)
 
 global_tcg_ref :: IORef (LHsBinds GhcTc)
 global_tcg_ref = unsafePerformIO $ newIORef $ error "no tcg_binds set"
@@ -132,11 +139,7 @@ findBindCoercions occ = everything (<>) $ mkQ mempty $ \case
                       ) x
 
 insertIfEmpty :: a -> [a] -> [a]
-insertIfEmpty a as =
-  case null as of
-    True -> [a]
-    False -> as
-
+insertIfEmpty a as = if null as then [a] else as
 
 isDictVar :: CoreBndr -> Bool
 isDictVar bndr = fromMaybe False $ do
@@ -158,10 +161,8 @@ coercionCheck opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
 
   when (flip appEndo True $ cco_warnHeavyOccs opts) $
     for_ dictSets \dictSet ->
-      -- warnMsg REASON $ ppr dictSet
-      when (heavyOcc dictSet) $
-        warnMsg REASON . ppr $ foldMap (S.singleton . occName) dictSet
-          -- heavyOccSDoc (nubOrd $ findRef occ binds) occ vars
+      when (heavyOcc dictSet) (warnMsg REASON $ heavyOccSDoc dictSet)
+
   when (flip appEndo True $ cco_warnHeavyCoerce opts) $
     for_ (M.toList . fmap exprStats $ programMap) \(coreBndr, coreStats) ->
       when (heavyCoerce coreStats) $
