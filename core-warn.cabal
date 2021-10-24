@@ -46,7 +46,7 @@ test-suite test
   type:             exitcode-stdio-1.0
   main-is:          Main.hs
   other-modules:    Spec, Infra, GoodTest, BadTest, InductionTest
-  -- ghc-options:      -O0
+  ghc-options:      -fplugin=CoreWarn
   hs-source-dirs:   test
   build-depends:    base >=4.10 && <5
                   , core-warn
