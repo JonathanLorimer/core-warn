@@ -3,9 +3,6 @@
 
 module Warn.Coercion where
 
-import Data.Map (Map)
-import qualified Data.Map as M
-
 #if __GLASGOW_HASKELL__ >= 900
 import GHC.Core.Stats
 import GHC.Plugins hiding ((<>))
@@ -16,6 +13,8 @@ import GhcPlugins hiding ((<>))
 import PprColour
 #endif
 
+------------------------------------------------------------------------------
+-- | Pretty print a "large number of coercions" warning.
 heavyCoerceSDoc :: [SrcSpan] -> CoreBndr -> CoreStats -> SDoc
 heavyCoerceSDoc refs bind stats =
   let srcSpanList = if length refs >= 3
@@ -38,11 +37,14 @@ heavyCoerceSDoc refs bind stats =
                  ]
            , text ""
            ]
+
+
+------------------------------------------------------------------------------
+-- | Heuristic for whether we should show a "large number of coercions"
+-- warning.
 heavyCoerce :: CoreStats -> Bool
 heavyCoerce CS {cs_tm, cs_co} =
   let quad = cs_tm * floor (logBase @Double 2 $ fromIntegral cs_tm)
    in cs_co >= quad && cs_co > 100
 
-tabulateBindExpr :: Bind CoreBndr -> Map CoreBndr CoreExpr
-tabulateBindExpr (NonRec var ex) = M.singleton var ex
-tabulateBindExpr (Rec ex) = foldMap (uncurry M.singleton) ex
+

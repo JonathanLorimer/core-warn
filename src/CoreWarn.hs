@@ -50,56 +50,70 @@ import HsExpr
 import HsBinds
 #endif
 
-global_tcg_ref :: IORef (LHsBinds GhcTc)
-global_tcg_ref = unsafePerformIO $ newIORef $ error "no tcg_binds set"
-{-# NOINLINE global_tcg_ref #-}
-
+------------------------------------------------------------------------------
+-- | The main @core-warn@ program.
 plugin :: Plugin
 plugin =
   defaultPlugin
-    { installCoreToDos = install
+    { installCoreToDos = \ss ctds -> do
+        binds <- liftIO $ readIORef global_tcg_ref
+        pure $ ctds ++ [coreWarn (parseOpts ss) binds]
     , pluginRecompile = const $ pure NoForceRecompile
     , typeCheckResultAction = \_ _ tcg -> do
         liftIO $ writeIORef global_tcg_ref $ tcg_binds tcg
         pure tcg
     }
 
-data CoercionCheckOpts = CoercionCheckOpts
-  { cco_warnBigCoerces :: Endo Bool,
-    cco_warnDeepDicts :: Endo Bool
+
+------------------------------------------------------------------------------
+-- | We need to get our grubby little hands on the 'tcg_binds', but the
+-- core-to-core plugin interface doesn't give us access to them. So we do this
+-- very safe trick to get a hold of them.
+global_tcg_ref :: IORef (LHsBinds GhcTc)
+global_tcg_ref = unsafePerformIO $ newIORef $ error "no tcg_binds set"
+{-# NOINLINE global_tcg_ref #-}
+
+
+------------------------------------------------------------------------------
+-- | Options for @core-warn@. These are opt-out.
+data CoreWarnOpts = CoreWarnOpts
+  { cwo_warnBigCoerces :: Endo Bool,
+    cwo_warnDeepDicts :: Endo Bool
   }
 
-instance Semigroup CoercionCheckOpts where
-  (<>) (CoercionCheckOpts lb4 lb5) (CoercionCheckOpts lb lb3) =
-    CoercionCheckOpts
-      { cco_warnBigCoerces = lb <> lb4,
-        cco_warnDeepDicts = lb3 <> lb5
+instance Semigroup CoreWarnOpts where
+  (<>) (CoreWarnOpts lb4 lb5) (CoreWarnOpts lb lb3) =
+    CoreWarnOpts
+      { cwo_warnBigCoerces = lb <> lb4,
+        cwo_warnDeepDicts = lb3 <> lb5
       }
 
-instance Monoid CoercionCheckOpts where
+instance Monoid CoreWarnOpts where
   mempty =
-    CoercionCheckOpts
-      { cco_warnBigCoerces = mempty,
-        cco_warnDeepDicts = mempty
+    CoreWarnOpts
+      { cwo_warnBigCoerces = mempty,
+        cwo_warnDeepDicts = mempty
       }
 
-install :: CorePlugin
-install ss ctds = do
-  binds <- liftIO $ readIORef global_tcg_ref
-  pure $ coreWarn (parseOpts ss) binds : ctds
 
-parseOpts :: [CommandLineOption] -> CoercionCheckOpts
+------------------------------------------------------------------------------
+-- | Parse options.
+parseOpts :: [CommandLineOption] -> CoreWarnOpts
 parseOpts = go
   where
     go = foldMap $ \case
-      "warn-large-coercions" -> CoercionCheckOpts (Endo $ pure True) mempty
-      "no-large-coercions"   -> CoercionCheckOpts (Endo $ pure False) mempty
-      "warn-deep-dicts"      -> CoercionCheckOpts mempty (Endo $ pure True)
-      "no-warn-deep-dicts"   -> CoercionCheckOpts mempty (Endo $ pure False)
+      "warn-large-coercions" -> CoreWarnOpts (Endo $ pure True) mempty
+      "no-large-coercions"   -> CoreWarnOpts (Endo $ pure False) mempty
+      "warn-deep-dicts"      -> CoreWarnOpts mempty (Endo $ pure True)
+      "no-warn-deep-dicts"   -> CoreWarnOpts mempty (Endo $ pure False)
       _ -> mempty
 
-findRef :: Data a => OccName -> a -> [SrcSpan]
-findRef occ = everything (<>) $ mkQ mempty $ \case
+
+------------------------------------------------------------------------------
+-- | Given an 'OccName' corresponding to a dictionary, find every immediate
+-- 'SrcSpan's that contain it.
+findDictRef :: Data a => OccName -> a -> [SrcSpan]
+findDictRef occ = everything (<>) $ mkQ mempty $ \case
 #if __GLASGOW_HASKELL__ >= 900
   L loc (XExpr (WrapExpr ev))
 #else
@@ -110,6 +124,7 @@ findRef occ = everything (<>) $ mkQ mempty $ \case
           (mkQ mempty $ \(v :: Var) -> bool [] [loc] $ getOccName v == occ)
           ev
   (_ :: LHsExpr GhcTc) -> []
+
 
 ------------------------------------------------------------------------------
 -- | Given an 'OccName', find the src span for every coercion inside of its
@@ -139,9 +154,15 @@ findBindCoercions occ = everything (<>) $ mkQ mempty $ \case
         (_ :: LHsExpr GhcTc) -> []
                       ) x
 
-insertIfEmpty :: a -> [a] -> [a]
-insertIfEmpty a as = if null as then [a] else as
 
+------------------------------------------------------------------------------
+-- | Like 'fromMaybe' but for lists.
+singletonIfEmpty :: a -> [a] -> [a]
+singletonIfEmpty a as = if null as then [a] else as
+
+
+------------------------------------------------------------------------------
+-- | Is this 'CoreBndr' the 'Var' of a dictionary?
 isDictVar :: CoreBndr -> Bool
 isDictVar bndr = fromMaybe False $ do
   (tycon, _) <- tcSplitTyConApp_maybe $ idType bndr
@@ -149,9 +170,18 @@ isDictVar bndr = fromMaybe False $ do
   pure True
 
 
-coreWarn :: CoercionCheckOpts -> LHsBinds GhcTc -> CoreToDo
+------------------------------------------------------------------------------
+-- | Translatea @'Bind' 'CoreBndr'@ into a map from 'CoreBndr's to 'CoreExpr's.
+coreBndrToExprMap :: Bind CoreBndr -> M.Map CoreBndr CoreExpr
+coreBndrToExprMap (NonRec var ex) = M.singleton var ex
+coreBndrToExprMap (Rec ex) = foldMap (uncurry M.singleton) ex
+
+
+------------------------------------------------------------------------------
+-- | The @core-warn@ todo pass.
+coreWarn :: CoreWarnOpts -> LHsBinds GhcTc -> CoreToDo
 coreWarn opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
-  let programMap = foldMap tabulateBindExpr $ mg_binds guts
+  let programMap = foldMap coreBndrToExprMap $ mg_binds guts
       dictSets = fmap (S.fromList . toList)
                  . components
                  . graphFromEdges
@@ -160,19 +190,25 @@ coreWarn opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
                  . mkCoreAdjacencyMap
                  $ programMap
 
-  when (flip appEndo True $ cco_warnDeepDicts opts) $
-    for_ dictSets \dictSet ->
-      let srcSpans = filter isGoodSrcSpan $ foldMap (`findRef` binds) $ foldMap (S.singleton . occName) dictSet
-       in when (heavyOcc dictSet) (warnMsg REASON $ heavyOccSDoc srcSpans dictSet)
+  when (flip appEndo True $ cwo_warnDeepDicts opts) $
+    for_ dictSets \dictSet -> do
+      let srcSpans
+            = filter isGoodSrcSpan
+            $ foldMap (flip findDictRef binds)
+            $ foldMap (S.singleton . occName) dictSet
+      when (heavyOcc dictSet) $
+        warnMsg REASON $
+          heavyOccSDoc srcSpans dictSet
 
-  when (flip appEndo True $ cco_warnBigCoerces opts) $
+  when (flip appEndo True $ cwo_warnBigCoerces opts) $
     for_ (M.toList . fmap exprStats $ programMap) \(coreBndr, coreStats) ->
       when (heavyCoerce coreStats) $
         warnMsg REASON $
           heavyCoerceSDoc
-            (insertIfEmpty noSrcSpan $
+            (singletonIfEmpty noSrcSpan $
 #if __GLASGOW_HASKELL__ >= 900
-              nub
+              -- TODO(sandy): I know it's slow, but blame GHC9 for getting rid
+              -- of the 'Ord' instance on 'SrcSpan
 #else
               nubOrd
 #endif
@@ -180,3 +216,4 @@ coreWarn opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
             coreBndr
             coreStats
   pure guts
+
