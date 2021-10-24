@@ -209,6 +209,7 @@ coreWarn opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
 #if __GLASGOW_HASKELL__ >= 900
               -- TODO(sandy): I know it's slow, but blame GHC9 for getting rid
               -- of the 'Ord' instance on 'SrcSpan
+              nub
 #else
               nubOrd
 #endif
