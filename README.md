@@ -1,4 +1,12 @@
-# Core Warn
+<h1 align="center"> Core Warn </h1>
+<p align="center">
+<a href="https://github.com/Kleidukos/text-display/actions"></a>
+  <img src="https://img.shields.io/github/workflow/status/JonathanLorimer/core-warn/Haskell CI?style=flat-square" alt="CI badge" />
+</a>
+<a href="https://haskell.org">
+  <img src="https://img.shields.io/badge/Made%20in-Haskell-%235e5086?logo=haskell&style=flat-square" alt="made with Haskell"/>
+</a>
+</p>
 
 ## Motivation
 
@@ -55,3 +63,21 @@ $ cabal repl test --ghc-options=-fplugin=CoreWarn
 ```
 
 ### Options
+
+Here is an example of how you would apply an option to this plugin. For the
+sake of variety we will use a file level pragma as the example.
+
+```haskell
+{-# OPTIONS_GHC -fplugin-opt=CoreWarn:<opt-name> #-}
+```
+
+The plugin accepts four arguments, but by default opts in. For example if you
+wanted to only show warning for one kind of issue mentioned above, you could
+use the follwing options:
+  - `warn-large-coercions`
+  - `warn-deep-dicts`
+
+If you have `CoreWarn` enabled for the entire project, you might want to disable it
+in a particular file. You can do so with the following options:
+  - `no-warn-large-coercions`
+  - `no-warn-deep-dicts`

@@ -102,10 +102,10 @@ parseOpts :: [CommandLineOption] -> CoreWarnOpts
 parseOpts = go
   where
     go = foldMap $ \case
-      "warn-large-coercions" -> CoreWarnOpts (Endo $ pure True) mempty
-      "no-large-coercions"   -> CoreWarnOpts (Endo $ pure False) mempty
-      "warn-deep-dicts"      -> CoreWarnOpts mempty (Endo $ pure True)
-      "no-warn-deep-dicts"   -> CoreWarnOpts mempty (Endo $ pure False)
+      "warn-large-coercions"    -> CoreWarnOpts (Endo $ pure True) mempty
+      "no-warn-large-coercions" -> CoreWarnOpts (Endo $ pure False) mempty
+      "warn-deep-dicts"         -> CoreWarnOpts mempty (Endo $ pure True)
+      "no-warn-deep-dicts"      -> CoreWarnOpts mempty (Endo $ pure False)
       _ -> mempty
 
 
