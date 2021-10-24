@@ -196,15 +196,15 @@ coreWarn opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
             = filter isGoodSrcSpan
             $ foldMap (flip findDictRef binds)
             $ foldMap (S.singleton . occName) dictSet
-      when (heavyOcc dictSet) $
+      when (shouldWarnDeepDict dictSet) $
         warnMsg REASON $
-          heavyOccSDoc srcSpans dictSet
+          pprDeepDict srcSpans dictSet
 
   when (flip appEndo True $ cwo_warnBigCoerces opts) $
     for_ (M.toList . fmap exprStats $ programMap) \(coreBndr, coreStats) ->
-      when (heavyCoerce coreStats) $
+      when (shouldWarnLargeCoercion coreStats) $
         warnMsg REASON $
-          heavyCoerceSDoc
+          pprWarnLargeCoerce
             (singletonIfEmpty noSrcSpan $
 #if __GLASGOW_HASKELL__ >= 900
               -- TODO(sandy): I know it's slow, but blame GHC9 for getting rid

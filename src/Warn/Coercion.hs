@@ -15,8 +15,8 @@ import PprColour
 
 ------------------------------------------------------------------------------
 -- | Pretty print a "large number of coercions" warning.
-heavyCoerceSDoc :: [SrcSpan] -> CoreBndr -> CoreStats -> SDoc
-heavyCoerceSDoc refs bind stats =
+pprWarnLargeCoerce :: [SrcSpan] -> CoreBndr -> CoreStats -> SDoc
+pprWarnLargeCoerce refs bind stats =
   let srcSpanList = if length refs >= 3
                        then take 3 ((bullet <+>) . ppr <$> refs) <> [text "..."]
                        else (bullet <+>) . ppr <$> refs
@@ -42,8 +42,8 @@ heavyCoerceSDoc refs bind stats =
 ------------------------------------------------------------------------------
 -- | Heuristic for whether we should show a "large number of coercions"
 -- warning.
-heavyCoerce :: CoreStats -> Bool
-heavyCoerce CS {cs_tm, cs_co} =
+shouldWarnLargeCoercion :: CoreStats -> Bool
+shouldWarnLargeCoercion CS {cs_tm, cs_co} =
   let quad = cs_tm * floor (logBase @Double 2 $ fromIntegral cs_tm)
    in cs_co >= quad && cs_co > 100
 
