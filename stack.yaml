@@ -1,0 +1,10 @@
+resolver: lts-16.31
+
+packages:
+- .
+
+extra-deps:
+- containers-good-graph-0.6.4.1@sha256:cb9b68ce6708d53e40848bbe6a0f47e0712e3d3d0e1912330742419ff0243474,1535
+
+
+
