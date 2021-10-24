@@ -19,6 +19,16 @@ second can be solved by ensuring that all inductive instances are balanced.
 
 In your `stack.yaml` add this
 
-``` extra-deps ```
+```yaml
+extra-deps:
+- core-warn-0.1.0.0
+```
+
+and then in `package.yaml` add:
+
+```yaml
+dependencies:
+- core-warn
+```
 
 ### Cabal
