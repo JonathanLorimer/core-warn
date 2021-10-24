@@ -92,10 +92,10 @@ parseOpts :: [CommandLineOption] -> CoercionCheckOpts
 parseOpts = go
   where
     go = foldMap $ \case
-      "warn-large-coercions" -> CoercionCheckOpts (Endo $ pure True) mempty
-      "no-large-coercions"   -> CoercionCheckOpts (Endo $ pure False) mempty
-      "warn-deep-dicts"      -> CoercionCheckOpts mempty (Endo $ pure True)
-      "no-warn-deep-dicts"   -> CoercionCheckOpts mempty (Endo $ pure False)
+      "warn-large-coercions"    -> CoercionCheckOpts (Endo $ pure True) mempty
+      "no-warn-large-coercions" -> CoercionCheckOpts (Endo $ pure False) mempty
+      "warn-deep-dicts"         -> CoercionCheckOpts mempty (Endo $ pure True)
+      "no-warn-deep-dicts"      -> CoercionCheckOpts mempty (Endo $ pure False)
       _ -> mempty
 
 findRef :: Data a => OccName -> a -> [SrcSpan]
