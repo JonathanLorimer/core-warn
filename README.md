@@ -1,10 +1,13 @@
 <h1 align="center"> Core Warn </h1>
 <p align="center">
-<a href="https://github.com/Kleidukos/text-display/actions"></a>
+<a href="https://github.com/JonathanLorimer/core-warn/actions"></a>
   <img src="https://img.shields.io/github/workflow/status/JonathanLorimer/core-warn/Haskell CI?style=flat-square" alt="CI badge" />
 </a>
 <a href="https://haskell.org">
   <img src="https://img.shields.io/badge/Made%20in-Haskell-%235e5086?logo=haskell&style=flat-square" alt="made with Haskell"/>
+</a>
+<a href="https://hackage.haskell.org/package/core-warn">
+  <img src="https://img.shields.io/hackage/v/core-warn.svg?logo=haskell&label=core-warn" alt="hackage link" />
 </a>
 </p>
 
