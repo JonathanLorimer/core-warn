@@ -1,7 +1,7 @@
 <h1 align="center"> Core Warn </h1>
 <p align="center">
 <a href="https://github.com/Kleidukos/text-display/actions"></a>
-  <img src="https://img.shields.io/github/workflow/status/JonathanLorimer/core-warn/CI?style=flat-square" alt="CI badge" />
+  <img src="https://img.shields.io/github/workflow/status/JonathanLorimer/core-warn/Haskell CI?style=flat-square" alt="CI badge" />
 </a>
 <a href="https://haskell.org">
   <img src="https://img.shields.io/badge/Made%20in-Haskell-%235e5086?logo=haskell&style=flat-square" alt="made with Haskell"/>
