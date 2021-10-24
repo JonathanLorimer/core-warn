@@ -5,11 +5,16 @@ cabal-version:       >=1.10
 
 name:                core-warn
 version:             0.1.0.0
-description:         "Provide warnings for unexpected Core generation"
 author:              Jonathan Lorimer
 maintainer:          jonathan_lorimer@mac.com
 build-type:          Simple
 extra-source-files:  CHANGELOG.md, README.md
+category:            Warning
+synopsis:            "Provide warnings for unexpected Core generation"
+description:         Please see the README on GitHub at <https://github.com/JonathanLorimer/core-warn#readme>
+license:             BSD3
+license-file:        LICENSE
+
 
 library
   exposed-modules:  CoreWarn
@@ -20,7 +25,6 @@ library
                   , ghc
                   , syb
                   , containers
-                  , mtl
                   , containers-good-graph
   hs-source-dirs:   src
   default-extensions: RecordWildCards
