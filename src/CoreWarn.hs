@@ -65,22 +65,22 @@ plugin =
     }
 
 data CoercionCheckOpts = CoercionCheckOpts
-  { cco_warnHeavyCoerce :: Endo Bool,
-    cco_warnHeavyOccs :: Endo Bool
+  { cco_warnBigCoerces :: Endo Bool,
+    cco_warnDeepDicts :: Endo Bool
   }
 
 instance Semigroup CoercionCheckOpts where
   (<>) (CoercionCheckOpts lb4 lb5) (CoercionCheckOpts lb lb3) =
     CoercionCheckOpts
-      { cco_warnHeavyCoerce = lb <> lb4,
-        cco_warnHeavyOccs = lb3 <> lb5
+      { cco_warnBigCoerces = lb <> lb4,
+        cco_warnDeepDicts = lb3 <> lb5
       }
 
 instance Monoid CoercionCheckOpts where
   mempty =
     CoercionCheckOpts
-      { cco_warnHeavyCoerce = mempty,
-        cco_warnHeavyOccs = mempty
+      { cco_warnBigCoerces = mempty,
+        cco_warnDeepDicts = mempty
       }
 
 install :: CorePlugin
@@ -92,10 +92,10 @@ parseOpts :: [CommandLineOption] -> CoercionCheckOpts
 parseOpts = go
   where
     go = foldMap $ \case
-      "warn-heavy-coerce"    -> CoercionCheckOpts (Endo $ pure True) mempty
-      "no-warn-heavy-coerce" -> CoercionCheckOpts (Endo $ pure False) mempty
-      "warn-heavy-occs"      -> CoercionCheckOpts mempty (Endo $ pure True)
-      "no-warn-heavy-occs"   -> CoercionCheckOpts mempty (Endo $ pure False)
+      "warn-large-coercions" -> CoercionCheckOpts (Endo $ pure True) mempty
+      "no-large-coercions"   -> CoercionCheckOpts (Endo $ pure False) mempty
+      "warn-deep-dicts"      -> CoercionCheckOpts mempty (Endo $ pure True)
+      "no-warn-deep-dicts"   -> CoercionCheckOpts mempty (Endo $ pure False)
       _ -> mempty
 
 findRef :: Data a => OccName -> a -> [SrcSpan]
@@ -160,12 +160,12 @@ coreWarn opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
                  . mkCoreAdjacencyMap
                  $ programMap
 
-  when (flip appEndo True $ cco_warnHeavyOccs opts) $
+  when (flip appEndo True $ cco_warnDeepDicts opts) $
     for_ dictSets \dictSet ->
       let srcSpans = filter isGoodSrcSpan $ foldMap (`findRef` binds) $ foldMap (S.singleton . occName) dictSet
        in when (heavyOcc dictSet) (warnMsg REASON $ heavyOccSDoc srcSpans dictSet)
 
-  when (flip appEndo True $ cco_warnHeavyCoerce opts) $
+  when (flip appEndo True $ cco_warnBigCoerces opts) $
     for_ (M.toList . fmap exprStats $ programMap) \(coreBndr, coreStats) ->
       when (heavyCoerce coreStats) $
         warnMsg REASON $
