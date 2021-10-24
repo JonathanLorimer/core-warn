@@ -19,6 +19,27 @@ second can be solved by ensuring that all inductive instances are balanced.
 
 In your `stack.yaml` add this
 
-``` extra-deps ```
+``` extra-deps
+```
 
 ### Cabal
+
+Add these lines to the corresponding stanza of your cabal file. For example if
+you want to run `CoreWarn` on your library stanza, add the below code block as
+a child of `library`.
+
+```cabal
+ghc-options:      -fplugin=CoreWarn
+build-depends:    base >=4.10 && <5
+                , ...
+                , core-warn
+```
+
+or you can run this option from the command line for a specific component, in
+this example we chose the `test` component:
+
+```shell
+$ cabal repl test --ghc-options=-fplugin=CoreWarn
+```
+
+### Options
