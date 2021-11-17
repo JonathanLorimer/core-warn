@@ -84,3 +84,8 @@ If you have `CoreWarn` enabled for the entire project, you might want to disable
 in a particular file. You can do so with the following options:
   - `no-warn-large-coercions`
   - `no-warn-deep-dicts`
+
+By default, `core-warn` is quite chatty in trying to be helpful. If you'd like
+terser error messages, enable
+  - `terse-messages`
+

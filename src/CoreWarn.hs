@@ -79,21 +79,20 @@ global_tcg_ref = unsafePerformIO $ newIORef $ error "no tcg_binds set"
 data CoreWarnOpts = CoreWarnOpts
   { cwo_warnBigCoerces :: Endo Bool,
     cwo_warnDeepDicts :: Endo Bool
+  , cwo_terseMessages :: Endo Bool
   }
 
 instance Semigroup CoreWarnOpts where
-  (<>) (CoreWarnOpts lb4 lb5) (CoreWarnOpts lb lb3) =
-    CoreWarnOpts
-      { cwo_warnBigCoerces = lb <> lb4,
-        cwo_warnDeepDicts = lb3 <> lb5
-      }
+  (CoreWarnOpts en en' en2) <> (CoreWarnOpts en3 en4 en5)
+    = CoreWarnOpts
+        {cwo_warnBigCoerces = en <> en3, cwo_warnDeepDicts = en' <> en4,
+         cwo_terseMessages = en2 <> en5}
 
 instance Monoid CoreWarnOpts where
-  mempty =
-    CoreWarnOpts
-      { cwo_warnBigCoerces = mempty,
-        cwo_warnDeepDicts = mempty
-      }
+  mempty
+    = CoreWarnOpts
+        {cwo_warnBigCoerces = mempty, cwo_warnDeepDicts = mempty,
+         cwo_terseMessages = mempty}
 
 
 ------------------------------------------------------------------------------
@@ -102,10 +101,12 @@ parseOpts :: [CommandLineOption] -> CoreWarnOpts
 parseOpts = go
   where
     go = foldMap $ \case
-      "warn-large-coercions"    -> CoreWarnOpts (Endo $ pure True) mempty
-      "no-warn-large-coercions" -> CoreWarnOpts (Endo $ pure False) mempty
-      "warn-deep-dicts"         -> CoreWarnOpts mempty (Endo $ pure True)
-      "no-warn-deep-dicts"      -> CoreWarnOpts mempty (Endo $ pure False)
+      "warn-large-coercions"    -> CoreWarnOpts (Endo $ pure True) mempty mempty
+      "no-warn-large-coercions" -> CoreWarnOpts (Endo $ pure False) mempty mempty
+      "warn-deep-dicts"         -> CoreWarnOpts mempty (Endo $ pure True) mempty
+      "no-warn-deep-dicts"      -> CoreWarnOpts mempty (Endo $ pure False) mempty
+      "terse-messages"          -> CoreWarnOpts mempty mempty (Endo $ pure True)
+      "no-terse-messages"       -> CoreWarnOpts mempty mempty (Endo $ pure False)
       _ -> mempty
 
 
@@ -198,13 +199,18 @@ coreWarn opts binds = CoreDoPluginPass "coercionCheck" $ \guts -> do
             $ foldMap (S.singleton . occName) dictSet
       when (shouldWarnDeepDict dictSet) $
         warnMsg REASON $
-          pprDeepDict srcSpans dictSet
+          pprDeepDict
+            (appEndo (cwo_terseMessages opts) True)
+            srcSpans
+            dictSet
+
 
   when (flip appEndo True $ cwo_warnBigCoerces opts) $
     for_ (M.toList . fmap exprStats $ programMap) \(coreBndr, coreStats) ->
       when (shouldWarnLargeCoercion coreStats) $
         warnMsg REASON $
           pprWarnLargeCoerce
+            (appEndo (cwo_terseMessages opts) True)
             (singletonIfEmpty noSrcSpan $
 #if __GLASGOW_HASKELL__ >= 900
               -- TODO(sandy): I know it's slow, but blame GHC9 for getting rid

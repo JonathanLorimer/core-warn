@@ -28,6 +28,7 @@ import GhcPlugins hiding ((<>))
 import TcType (tcSplitNestedSigmaTys)
 import TyCoRep
 import PprColour
+import Data.Bool (bool)
 #endif
 
 
@@ -64,24 +65,38 @@ shouldWarnDeepDict coreBndrs =
 
 ------------------------------------------------------------------------------
 -- | Pretty print a "deep dicts" warning.
-pprDeepDict :: [SrcSpan] -> Set CoreBndr -> SDoc
-pprDeepDict goodSpans vars =
+pprDeepDict :: Bool -> [SrcSpan] -> Set CoreBndr -> SDoc
+pprDeepDict terse goodSpans vars =
   let srcSpanList = if length goodSpans >= 3
                        then take 3 ((bullet <+>) . ppr <$> goodSpans) <> [text "..."]
                        else (bullet <+>) . ppr <$> goodSpans
-   in vcat [ text "Found a large chain of dictionaries produced in GHC Core."
-           , nest 2 $  text "A big instance chain that is generating a linear amount of core dictionaries."
-                    $$ text "This is probably caused by instance induction on an unbalanced structure (like a type-level list)."
-                    $$ text "Consider using a balanced structure (like a type-level tree)."
-           , blankLine
-           , text "Arising from:"
-           , nest 4 (vcat srcSpanList)
-           , blankLine
-           , text "Biggest dictionary: " <+> coloured colBlueFg (ppr $ biggestType vars)
-           , text "Size of type: " <+> coloured colBlueFg (int $ typeSizeWithoutKinds $ biggestType vars)
-           , text "Number of dictionaries: " <+> coloured colBlueFg (int $ Set.size vars)
-           , blankLine
-           ]
+      biggest_dict = coloured colBlueFg (ppr $ biggestType vars)
+      type_size = coloured colBlueFg (int $ typeSizeWithoutKinds $ biggestType vars)
+      num_dicts = coloured colBlueFg (int $ Set.size vars)
+      full_msg =
+        vcat [ text "Found a large chain of dictionaries produced in GHC Core."
+             , nest 2 $  text "A big instance chain that is generating a linear amount of core dictionaries."
+                      $$ text "This is probably caused by instance induction on an unbalanced structure (like a type-level list)."
+                      $$ text "Consider using a balanced structure (like a type-level tree)."
+             , blankLine
+             , text "Arising from:"
+             , nest 4 (vcat srcSpanList)
+             , blankLine
+             , text "Biggest dictionary: " <+> biggest_dict
+             , text "Size of type: " <+> type_size
+             , text "Number of dictionaries: " <+> num_dicts
+             , blankLine
+             ]
+      terse_msg =
+        vcat [ sep
+                [ text "deep dictionary"
+                , text "biggest:" <+> biggest_dict
+                , text "type size:" <+> type_size
+                , text "num dicts:" <+> num_dicts
+                ]
+             , nest 4 $ vcat srcSpanList
+             ]
+    in bool full_msg terse_msg terse
 
 
 ------------------------------------------------------------------------------
