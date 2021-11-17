@@ -11,8 +11,8 @@ import GHC.Utils.Ppr.Colour
 import CoreStats
 import GhcPlugins hiding ((<>))
 import PprColour
-import Data.Bool (bool)
 #endif
+import Data.Bool (bool)
 
 ------------------------------------------------------------------------------
 -- | Pretty print a "large number of coercions" warning.

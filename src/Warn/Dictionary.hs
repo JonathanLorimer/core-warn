@@ -10,6 +10,7 @@
 
 module Warn.Dictionary where
 
+import Data.Bool (bool)
 import Data.Foldable
 import Data.Generics.Aliases
 import Data.Generics.Schemes
@@ -28,7 +29,6 @@ import GhcPlugins hiding ((<>))
 import TcType (tcSplitNestedSigmaTys)
 import TyCoRep
 import PprColour
-import Data.Bool (bool)
 #endif
 
 
