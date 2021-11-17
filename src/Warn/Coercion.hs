@@ -49,11 +49,11 @@ pprWarnLargeCoerce terse refs bind stats =
              ]
       terse_msg =
         vcat $
-          [ text "big coercion" <+> parens occ_name
-          , nest 4 $ sep
-              [ text "terms:" <+> terms
-              , text "types:" <+> types
-              , text "coercions:" <+> coers
+          [ text "big coercion in" <+> occ_name
+          , sep
+              [ text "terms:", terms
+              , text "types:", types
+              , text "coercions:", coers
               ]
           ] <>
           [ nest 4 $ vcat srcSpanList
